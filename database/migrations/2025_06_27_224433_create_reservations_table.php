@@ -11,15 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('showrooms', function (Blueprint $table) {
+        Schema::create('reservations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('name');
-            $table->string('location')->nullable();
-            $table->text('description')->nullable();
-            $table->string('logo')->nullable();
-            $table->boolean('is_approved')->default(false); // توثيق من الإدارة
-
+            $table->foreignId('car_id')->constrained()->onDelete('cascade');
+            $table->foreignId('showroom_id')->constrained()->onDelete('cascade');
+            $table->datetime('reservation_date');
+            $table->decimal('deposit_amount', 12, 2);
+            $table->enum('status', ['pending', 'confirmed', 'cancelled', 'completed'])->default('pending');
             $table->timestamps();
         });
     }
@@ -29,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('showrooms');
+        Schema::dropIfExists('reservations');
     }
 };

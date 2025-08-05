@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\Role;
 use App\Repositories\AuthRepository;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
+use App\Http\Resources\UserResource;
 
 class AuthService
 {
@@ -19,22 +22,14 @@ class AuthService
     public function register(array $data): JsonResponse
     {
         if (isset($data['profile_picture']) && $data['profile_picture'] instanceof UploadedFile) {
-            $image = $data['profile_picture'];
-            $imageName = time() . '_' . $image->getClientOriginalName();
-            $image->move(public_path('profile_pictures'), name: $imageName);
-            $data['profile_picture'] = $imageName;
+            $path = $data['profile_picture']->store('profile_pictures', 'public');
+            $data['profile_picture'] = 'storage/' . $path;
         } else {
             $data['profile_picture'] = null;
         }
 
-        if (isset($data['prove_Admin']) && $data['prove_Admin'] instanceof UploadedFile) {
-            $image = $data['prove_Admin'];
-            $imageName = time() . '_' . $image->getClientOriginalName();
-            $image->move(public_path('prove_Admins'), name: $imageName);
-            $data['prove_Admin'] = $imageName;
-        } else {
-            $data['prove_Admin'] = null;
-        }
+        if (!isset($data['role_id']))
+            $data['role_id'] = Role::USER_ROLE_ID;
 
         $data['password'] = Hash::make($data['password']);
 
@@ -42,16 +37,11 @@ class AuthService
 
         return response()->json([
             'status'  => true,
-            'message' => 'Sucessfully.',
-            'user'    => [
-                'id'              => $user->id,
-                'name'            => $user->name,
-                'email'           => $user->email,
-                'phone'           => $user->phone,
-                'profile_picture' => $user->profile_picture,
-            ]
+            'message' => 'User registered successfully.',
+            'user'    => new UserResource($user)
         ]);
     }
+
     public function login(array $credentials): array
     {
         $user = $this->AuthRepo->findByEmail($credentials['email']);
@@ -68,42 +58,77 @@ class AuthService
             'status' => true,
             'message' => 'Login successful.',
             'token' => $token,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'profile_picture' => $user->profile_picture,
-            ],
+            'email' => $user->email,
         ];
     }
 
+
     public function logout()
     {
-
         $user = auth()->user();
 
         return $this->AuthRepo->removeTokens($user);
     }
 
-    public function profile()
+    public function profile(): JsonResponse
     {
+        $user = $this->AuthRepo->getProfile();
 
-        return $this->AuthRepo->getProfile();
+        return response()->json([
+            'status' => true,
+            'user' => new UserResource($user)
+        ]);
     }
 
-    public function editProfile(array $credentials)
+    public function editProfile(array $newData): array
     {
-
         $user = auth()->user();
 
         if (!$user) {
-            return response()->json([
+            return [
                 'status' => false,
-                'message' => 'Unauthorized'
-            ], 401);
-        } else {
-            return $this->AuthRepo->newData($user, $credentials);
+                'message' => 'Unauthorized.'
+            ];
         }
+
+        if (isset($newData['profile_picture']) && $newData['profile_picture'] instanceof UploadedFile) {
+            $image = $newData['profile_picture'];
+
+            if ($user->profile_picture) {
+                $oldPath = str_replace('storage/', '', $user->profile_picture);
+                if (Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+            }
+
+            $extension = $image->getClientOriginalExtension();
+            $fileName = 'user_' . $user->id . '.' . $extension;
+
+            $path = $image->storeAs('profile_pictures', $fileName, 'public');
+
+            $newData['profile_picture'] = 'storage/' . $path;
+        } else {
+            unset($newData['profile_picture']);
+        }
+
+        if (isset($newData['password']) && !empty($newData['password'])) {
+            if (!isset($newData['old_password']) || !Hash::check($newData['old_password'], $user->password)) {
+                return [
+                    'status' => false,
+                    'message' => 'Old password is incorrect or missing.'
+                ];
+            }
+            $newData['password'] = Hash::make($newData['password']);
+        } else {
+            unset($newData['password']);
+        }
+
+        $updatedUser = $this->AuthRepo->newData($user, $newData);
+
+        return [
+            'status' => true,
+            'message' => 'Profile updated successfully.',
+            'user' => new UserResource($updatedUser)
+        ];
     }
 }

@@ -22,22 +22,33 @@ class RegisterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'             => 'required|string|max:255',
+            'user_name'        => 'required|string|max:255',
+            'first_name'       => 'required|string|max:255',
+            'last_name'        => 'required|string|max:255',
             'email'            => 'required|email|unique:users,email',
             'phone'            => 'required|string|unique:users,phone',
             'password'         => 'required|min:8|max:20',
-            'role'             => 'sometimes|in:User,Admin',
             'profile_picture'  => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'prove_Admin'      =>  'required_if:role,Admin'
+            'role_id'          => 'sometimes|integer'
+
         ];
     }
 
     public function messages(): array
     {
         return [
-            'name.required' => 'The name field is required.',
-            'name.string' => 'The name must be a string.',
-            'name.max' => 'The name may not be greater than 255 characters.',
+            'first_name.required' => 'The first_name field is required.',
+            'first_name.string' => 'The first_name must be a string.',
+            'first_name.max' => 'The first_name may not be greater than 255 characters.',
+
+            'last_name.required' => 'The last_name field is required.',
+            'last_name.string' => 'The last_name must be a string.',
+            'last_name.max' => 'The last_name may not be greater than 255 characters.',
+
+
+            'user_name.required' => 'The user_name field is required.',
+            'user_name.string' => 'The user_name must be a string.',
+            'user_name.max' => 'The user_name may not be greater than 255 characters.',
 
             'email.required' => 'The email field is required.',
             'email.email' => 'Please provide a valid email address.',

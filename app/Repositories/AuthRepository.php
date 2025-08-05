@@ -3,9 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\User;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Hash;
+
 
 class AuthRepository
 {
@@ -13,12 +11,10 @@ class AuthRepository
     {
         return User::create($data);
     }
-
     public function findByEmail(string $email)
     {
         return User::where('email', $email)->first();
     }
-
     public function removeTokens(User $user)
     {
 
@@ -31,32 +27,24 @@ class AuthRepository
 
         return $user;
     }
-
     public function newData(User $user, $newData)
     {
-        $user->name         = $newData['name'] ?? $user->name;
-        $user->email        = $newData['email'] ?? $user->email;
-        $user->phone = $newData['phone'] ?? $user->phone;
+        $user->first_name = $newData['first_name'] ?? $user->first_name;
+        $user->last_name  = $newData['last_name'] ?? $user->last_name;
+        $user->user_name  = $newData['user_name'] ?? $user->user_name;
+        $user->email      = $newData['email'] ?? $user->email;
+        $user->phone      = $newData['phone'] ?? $user->phone;
 
-        if (!empty($newData['password'])) {
-            $user->password = Hash::make($newData['password']);
+        if (isset($newData['password'])) {
+            $user->password = $newData['password'];
         }
 
-        if (isset($newData['profile_picture']) && $newData['profile_picture'] instanceof UploadedFile) {
-            if ($user->profile_picture) {
-                $oldImagePath = public_path('profile_pictures/' . $user->profile_picture);
-                if (File::exists($oldImagePath)) {
-                    File::delete($oldImagePath);
-                }
-            }
-
-            $image = $newData['profile_picture'];
-            $imageName = time() . '_' . $image->getClientOriginalName();
-            $image->move(public_path('profile_pictures'), $imageName);
-            $user->profile_picture = $imageName;
+        if (isset($newData['profile_picture'])) {
+            $user->profile_picture = $newData['profile_picture'];
         }
 
         $user->save();
+
         return $user;
     }
 }

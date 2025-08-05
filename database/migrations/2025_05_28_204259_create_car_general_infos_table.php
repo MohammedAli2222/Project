@@ -13,13 +13,14 @@ return new class extends Migration
     {
         Schema::create('car_general_infos', function (Blueprint $table) {
             $table->id();
-             $table->foreignId('car_id')->constrained()->onDelete('cascade');
+            $table->foreignId('car_id')->constrained(table: 'cars')->onDelete('cascade');
+            $table->string('name');
             $table->string('brand');
             $table->string('model');
+            $table->enum('gear_box', ['manual', 'automatic', 'cvt']);
             $table->year('year');
-            $table->enum('gearbox', ['manual', 'automatic']);
-            $table->enum('fuel_type', ['gasoline', 'diesel', 'hybrid', 'electric']);
-            $table->string('body_type')->nullable();
+            $table->enum('fuel_type', ['petrol', 'diesel', 'hybrid', 'electric']);
+            $table->enum('body_type', ['sedan', 'suv', 'hatchback', 'coupe', 'convertible', 'truck']);
             $table->timestamps();
         });
     }

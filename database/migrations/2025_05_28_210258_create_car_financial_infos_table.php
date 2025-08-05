@@ -13,10 +13,12 @@ return new class extends Migration
     {
         Schema::create('car_financial_infos', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('car_id')->constrained()->onDelete('cascade');
+            $table->foreignId('car_id')->constrained('cars')->onDelete('cascade');
             $table->decimal('price', 12, 2);
-            $table->string('currency', 10)->default('SYP');
-            $table->boolean('negotiable')->default(true);
+            $table->string('currency', 3)->default('SYP');
+            $table->boolean('negotiable')->default(false);
+            $table->decimal('discount_percentage', 5, 2)->nullable();
+            $table->decimal('discount_amount', 12, 2)->nullable();
             $table->timestamps();
         });
     }

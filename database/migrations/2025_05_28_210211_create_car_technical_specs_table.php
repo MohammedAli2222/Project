@@ -13,11 +13,10 @@ return new class extends Migration
     {
         Schema::create('car_technical_specs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('car_id')->constrained()->onDelete('cascade');
-            $table->integer('horse_power')->nullable();
-            $table->string('engine_type')->nullable();
-            $table->integer('cylinders')->nullable();
-            $table->string('drive_type')->nullable();
+            $table->foreignId('car_id')->constrained('cars')->onDelete('cascade');
+            $table->integer('horse_power');
+            $table->string('engine_type');
+            $table->integer('cylinders');
             $table->timestamps();
         });
     }

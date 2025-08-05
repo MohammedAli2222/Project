@@ -1,7 +1,15 @@
 <?php
 
+use App\Http\Controllers\AuctionController;
+use App\Http\Controllers\RentalController;
+use App\Http\Controllers\ShowroomFavoriteController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CarController;
+use App\Http\Controllers\CarFavoriteController;
+use App\Http\Controllers\ShowroomController;
+use App\Http\Controllers\VerificationController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -19,8 +27,81 @@ Route::post('login', [AuthController::class, 'login']);
 
 
 Route::group(["middleware" => ["auth:sanctum"]], function () {
-
+    // Auth
     Route::get('/profile', [AuthController::class, 'profile']);
     Route::get('/logout', [AuthController::class, 'logout']);
-    Route::post('/edit', [AuthController::class, 'editProfile']);
+    Route::post('/editProfile', [AuthController::class, 'editProfile']);
+
+    //Favorite
+    Route::post('/cars/{car}/favorite', [CarFavoriteController::class, 'add']);
+    Route::delete('/cars/{car}/favorite', [CarFavoriteController::class, 'remove']);
+    Route::get('/favorites/cars', [CarFavoriteController::class, 'index']);
+
+    Route::post('/showrooms/{showroom}/favorite', [ShowroomFavoriteController::class, 'add']);
+    Route::delete('/showrooms/{showroom}/favorite', [ShowroomFavoriteController::class, 'remove']);
+    Route::get('/favorites/showrooms', [ShowroomFavoriteController::class, 'index']);
+
+
+    // Verification
+    Route::prefix('verify')->group(function () {
+        Route::post('/user', [VerificationController::class, 'userVerification'])->middleware('check_User');
+        Route::post('/showroom', [VerificationController::class, 'showroomVerification'])->middleware('check_OfficeOwner');
+        Route::get('/status', [VerificationController::class, 'getVerificationStatus']);
+        Route::middleware('check_Admin')->group(function () {
+            Route::get('/status/{id}', [VerificationController::class, 'showVerificationDetails']);
+            Route::get('/allUsers', [VerificationController::class, 'showaAllVerificationUser']);
+            Route::get('/allShowroom', [VerificationController::class, 'showaAllVerificationShowroom']);
+            Route::put('/updateStatus/{id}', [VerificationController::class, 'updateStatusVerification']);
+            Route::get('/pending', [VerificationController::class, 'getPendingVerifications']);
+            Route::get('/pending/users', [VerificationController::class, 'getPendingUserVerifications']);
+            Route::get('/pending/showrooms', [VerificationController::class, 'getPendingShowroomVerifications']);
+            // Route::put('/user/{id_verification}/approve', [VerificationController::class, 'approveUserVerification']);
+            // Route::put('/user/{id_verification}/reject', [VerificationController::class, 'rejectUserVerification']);
+            // Route::put('/showroom/{id_verification}/approve', [VerificationController::class, 'approveShowroomVerification']);
+            // Route::put('/showroom/{id_verification}/reject', [VerificationController::class, 'rejectShowroomVerification']);
+            Route::post('update',[VerificationController::class,'update']);
+        });
+    });
+
+
+
+    // Showroom
+    Route::middleware('check_OfficeOwner')->group(function () {
+        Route::post('/addShowroom', [ShowroomController::class, 'addShowroom']);
+        Route::get('/showroom/{id}', [ShowroomController::class, 'getShowroom']);
+        Route::get('/showrooms', [ShowroomController::class, 'getShowrooms']);
+        Route::delete('/deletShowrooms/{id}', [ShowroomController::class, 'deleteShowroom']);
+        Route::put('/editShowrooms/{id}', [ShowroomController::class, 'editShowroom']);
+    });
+
+    //Car
+    Route::post('/addCar/{showroom_id}', [CarController::class, 'addCar'])->middleware('check_OfficeOwner');
+    Route::delete('/deletCar/{showroom_id}/{car_id}', [CarController::class, 'deleteCar'])->middleware('check_OfficeOwner');
+    Route::get('/getCar/{showroom_id}/{car_id}', [CarController::class, 'getCar']);
+    Route::get('/getCars/{showroom_id}', [CarController::class, 'listCarsByShowroom']);
+    Route::get('/cars/{carID}/status/{status}', [CarController::class, 'changeCarStatus'])->middleware('check_OfficeOwner');
+
+    Route::prefix('rentals')->group(function () {
+        Route::post('/mark-rentable', [RentalController::class, 'markCarAsRentable']);
+        Route::post('/', [RentalController::class, 'createRental']);
+        Route::post('/{id}/confirm', [RentalController::class, 'confirmRental']);
+        Route::get('/user', [RentalController::class, 'getUserRentals']);
+        Route::get('/showroom/{showroomId}', [RentalController::class, 'getShowroomRentals']);
+        Route::get('/{rentalId}', [RentalController::class, 'getRentalDetails']);
+    });
+
+    //Auction
+    Route::prefix('auction')->middleware('auth:sanctum')->group(function () {
+        Route::post('/create', [AuctionController::class, 'createAuction']);
+        Route::put('/{id}/update', [AuctionController::class, 'updateAuction']);
+        Route::delete('/{id}/delete', [AuctionController::class, 'deleteAuction']);
+        Route::post('/{id}/cancel', [AuctionController::class, 'cancelAuction']);
+
+        Route::get('/active', [AuctionController::class, 'getActiveAuctions']);
+        Route::get('/{id}', [AuctionController::class, 'getAuction']);
+        Route::get('/{id}/bids', [AuctionController::class, 'getBids']);
+        Route::get('/showroom/{id}', [AuctionController::class, 'getShowroomAuctions']);
+        Route::post('/bid', [AuctionController::class, 'placeBid']);
+        Route::post('/{id}/close', [AuctionController::class, 'closeAuction']);
+    });
 });

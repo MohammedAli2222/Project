@@ -8,7 +8,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use App\Http\Requests\RegisterRequest;
 
-
 class AuthController extends Controller
 {
     protected AuthService $authService;
@@ -18,14 +17,12 @@ class AuthController extends Controller
         $this->authService = $authService;
     }
 
-
     public function register(RegisterRequest $request): JsonResponse
     {
         $validatedData = $request->validated();
 
         return $this->authService->register($validatedData);
     }
-
 
     public function login(Request $request): JsonResponse
     {
@@ -39,7 +36,6 @@ class AuthController extends Controller
         return response()->json($response, $response['status'] ? 200 : 401);
     }
 
-
     public function logout(): JsonResponse
     {
         $this->authService->logout();
@@ -50,27 +46,17 @@ class AuthController extends Controller
         ]);
     }
 
-
     public function profile(): JsonResponse
     {
-        $user = $this->authService->profile();
-
-        return response()->json([
-            'status' => true,
-            'user'   => $user
-        ]);
+        return $this->authService->profile();
     }
 
     public function editProfile(Request $request): JsonResponse
     {
-        $data = $request->only(['name', 'email', 'number_phone', 'password', 'profile_picture']);
+        $data = $request->only(['user_name', 'email', 'phone', 'password', 'profile_picture', 'old_password', 'last_name', 'first_name']);
 
-        $user = $this->authService->editProfile($data);
+        $response = $this->authService->editProfile($data);
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Profile updated successfully.',
-            'user' => $user
-        ]);
+        return response()->json($response, $response['status'] ? 200 : 401);
     }
 }
