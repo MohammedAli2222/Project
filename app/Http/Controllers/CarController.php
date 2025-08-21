@@ -51,7 +51,6 @@ class CarController extends Controller
             'car' => new CarResource($result['car']),
         ]);
     }
-
     public function deleteCar(int $showroom_id, int $car_id): JsonResponse
     {
         $deleted = $this->carService->deleteCar($car_id, $showroom_id);
@@ -101,6 +100,16 @@ class CarController extends Controller
         return response()->json([
             'status' => true,
             'message' => $result['message'],
+        ]);
+    }
+
+    public function getRandomCars()
+    {
+        $cars = $this->carService->getRandomCarsForHomepage();
+
+        return response()->json([
+            'status' => true,
+            'data' => CarResource::collection($cars),
         ]);
     }
 }

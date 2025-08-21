@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('car_general_infos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('car_id')->constrained(table: 'cars')->onDelete('cascade');
+            $table->enum('condition', ['new', 'used']);
+            $table->string('vin', 17)->unique();
             $table->string('name');
             $table->string('brand');
             $table->string('model');

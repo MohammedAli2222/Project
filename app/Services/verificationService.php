@@ -352,7 +352,7 @@ class VerificationService
         if (!$verification) {
             return [
                 'status' => false,
-                'message' => 'Verification request not found.'
+                'message' => 'Verification request not found. '
             ];
         }
 

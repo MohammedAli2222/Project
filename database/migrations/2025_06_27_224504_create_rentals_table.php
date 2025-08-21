@@ -20,7 +20,7 @@ return new class extends Migration
             $table->datetime('end_date');
             $table->decimal('rental_cost_per_hour', 8, 2);
             $table->decimal('total_cost', 12, 2);
-            $table->enum('status', ['active', 'completed', 'cancelled'])->default('active');
+            $table->enum('status', ['pending', 'confirmed', 'active', 'completed', 'cancelled'])->default('pending');
             $table->timestamps();
         });
     }

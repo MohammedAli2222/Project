@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Car;
 use App\Models\Showroom;
 use App\Repositories\CarRepository;
 use Exception;
@@ -141,7 +142,7 @@ class CarService
         DB::beginTransaction();
 
         try {
-            if (isset($data['name']) || isset($data['brand']) || isset($data['model']) || isset($data['gear_box']) || isset($data['year']) || isset($data['fuel_type']) || isset($data['body_type'])) {
+            if (isset($data['name']) || isset($data['brand']) || isset($data['model']) || isset($data['gear_box']) || isset($data['year']) || isset($data['fuel_type']) || isset($data['body_type']) || isset($data['vin']) || isset($data['condition'])) {
                 $car->generalInfo->update([
                     'name' => $data['name'] ?? $car->generalInfo->name,
                     'brand' => $data['brand'] ?? $car->generalInfo->brand,
@@ -150,6 +151,8 @@ class CarService
                     'year' => $data['year'] ?? $car->generalInfo->year,
                     'fuel_type' => $data['fuel_type'] ?? $car->generalInfo->fuel_type,
                     'body_type' => $data['body_type'] ?? $car->generalInfo->body_type,
+                    'vin' => $data['vin'] ?? $car->generalInfo->vin,
+                    'condition' => $data['condition'] ?? $car->generalInfo->condition,
                 ]);
             }
 
@@ -261,5 +264,11 @@ class CarService
             'status' => false,
             'message' => 'Failed to update status.'
         ];
+    }
+
+
+    public function getRandomCarsForHomepage(int $limit = 10)
+    {
+        return $this->carRepository->getRandomCarsFromMultipleShowrooms($limit);
     }
 }

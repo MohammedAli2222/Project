@@ -20,6 +20,12 @@ class rental extends Model
         'status'
     ];
 
+    const STATUS_PENDING   = 'pending';
+    const STATUS_CONFIRMED = 'confirmed';
+    const STATUS_ACTIVE    = 'active';
+    const STATUS_COMPLETED = 'completed';
+    const STATUS_CANCELLED = 'cancelled';
+
     protected $casts = [
         'start_date' => 'datetime',
         'end_date' => 'datetime',

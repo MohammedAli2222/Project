@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\RentalRepository;
 use App\Models\Car;
+use App\Models\rental;
 use Carbon\Carbon;
 
 class RentalService
@@ -17,9 +18,23 @@ class RentalService
 
     public function markCarAsRentable(int $carId, float $price): array
     {
-        $car = Car::find($carId);
+        $officer = auth()->user()->id;
+
+        $car = Car::where('id', $carId)->where('user_id', $officer)->first();
+        if ($car) {
+            $isRentable = $car->is_rentable == true;
+            if ($isRentable) {
+                return [
+                    'status' => 'error',
+                    'message' => 'Car is rentable.'
+                ];
+            }
+        }
         if (!$car) {
-            return ['status' => 'error', 'message' => 'Car not found.'];
+            return [
+                'status' => 'error',
+                'message' => 'Car not found or dont have this car.'
+            ];
         }
 
         $this->rentalRepository->markCarAsRentable($carId, $price);
@@ -35,6 +50,16 @@ class RentalService
             return ['status' => 'error', 'message' => 'This car is not available for rent.'];
         }
 
+        // التحقق من عدم وجود حجز نشط لنفس المستخدم والسيارة
+        $existingRental = Rental::where('user_id', $userId)
+            ->where('car_id', $carId)
+            ->whereIn('status', ['pending', 'confirmed', 'active'])
+            ->first();
+
+        if ($existingRental) {
+            return ['status' => 'error', 'message' => 'You already have an active rental for this car.'];
+        }
+
         $start = Carbon::parse($startDate);
         $end = Carbon::parse($endDate);
 
@@ -42,8 +67,20 @@ class RentalService
             return ['status' => 'error', 'message' => 'Invalid rental duration.'];
         }
 
-        if ($this->rentalRepository->hasOverlap($carId, $startDate, $endDate)) {
-            return ['status' => 'error', 'message' => 'Car is already rented during this period.'];
+        // التحقق من التداخل مع الحجوزات الأخرى
+        $suggestions = $this->rentalRepository->checkOverlapAndSuggest(
+            $carId,
+            $startDate,
+            $endDate,
+            auth()->id()
+        );
+
+        if ($suggestions !== null) {
+            return [
+                'status' => 'error',
+                'message' => 'Car is already rented during this period.',
+                'suggestions' => $suggestions
+            ];
         }
 
         $hours = $start->diffInHours($end);
@@ -57,17 +94,21 @@ class RentalService
             'end_date' => $endDate,
             'rental_cost_per_hour' => $car->rental_cost_per_hour,
             'total_cost' => $totalCost,
-            'status' => 'active'
+            'status' => Rental::STATUS_PENDING
         ]);
 
         $this->rentalRepository->markCarAsRented($carId);
 
-        return ['status' => 'success', 'message' => 'Rental created and car marked as rented.', 'rental' => $rental];
+        return [
+            'status' => 'success',
+            'message' => 'Rental created successfully.',
+            'rental' => $rental
+        ];
     }
 
     public function confirmRental($rentalId, $status): array
     {
-        if (!in_array($status, ['completed', 'cancelled'])) {
+        if (!in_array($status, ['completed', 'cancelled', 'active', 'confirmed'])) {
             return ['status' => 'error', 'message' => 'Invalid status.'];
         }
 

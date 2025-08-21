@@ -15,11 +15,10 @@ class RentalController extends Controller
         $this->service = $service;
     }
 
-
     public function markCarAsRentable(Request $request)
     {
         $request->validate([
-            'car_id' => 'required|exists:cars,id',
+            'car_id' => 'required',
             'rental_cost_per_hour' => 'required|numeric|min:1'
         ]);
 
@@ -34,7 +33,7 @@ class RentalController extends Controller
     public function createRental(Request $request)
     {
         $request->validate([
-            'car_id' => 'required|exists:cars,id',
+            'car_id' => 'required',
             'start_date' => 'required|date_format:Y-m-d H:i:s',
             'end_date' => 'required|date_format:Y-m-d H:i:s'
         ]);
@@ -52,7 +51,7 @@ class RentalController extends Controller
     public function confirmRental(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:completed,cancelled'
+            'status' => 'required|in:completed,cancelled,active,confirmed'
         ]);
 
         $result = $this->service->confirmRental($id, $request->status);

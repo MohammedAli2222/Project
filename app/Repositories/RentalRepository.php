@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Rental;
 use App\Models\Car;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class RentalRepository
@@ -15,7 +16,7 @@ class RentalRepository
 
     public function markCarAsRented(int $carId): void
     {
-        Car::where('id', $carId)->update(['available_status' => 'rented']);
+        Car::where('id', $carId)->update(['available_status' => 'available']);
     }
 
     public function markCarAsAvailable(int $carId): void
@@ -55,18 +56,91 @@ class RentalRepository
         return $rental;
     }
 
-    public function hasOverlap(int $carId, string $start, string $end): bool
-    {
-        return Rental::where('car_id', $carId)
-            ->where('status', '!=', 'cancelled')
-            ->where(function ($query) use ($start, $end) {
-                $query->whereBetween('start_date', [$start, $end])
-                    ->orWhereBetween('end_date', [$start, $end])
-                    ->orWhere(function ($q) use ($start, $end) {
-                        $q->where('start_date', '<', $start)
-                            ->where('end_date', '>', $end);
-                    });
+    public function checkOverlapAndSuggest(
+        int $carId,
+        string $requestedStart,
+        string $requestedEnd,
+        ?int $excludeUserId = null
+    ): ?array {
+        // 1. التحقق من التداخل المؤكد
+        $overlaps = Rental::where('car_id', $carId)
+            ->whereIn('status', ['active', 'confirmed']) // تغيير من 'accepted' إلى 'confirmed'
+            ->when($excludeUserId, function ($q) use ($excludeUserId) {
+                $q->where('user_id', '!=', $excludeUserId);
+            })
+            ->where(function ($q) use ($requestedStart, $requestedEnd) {
+                $q->where(function ($qq) use ($requestedStart, $requestedEnd) {
+                    // يبدأ الحجز قبل نهاية الطلب وينتهي بعد بدايته → تداخل
+                    $qq->where('start_date', '<', $requestedEnd)
+                        ->where('end_date', '>', $requestedStart);
+                });
             })
             ->exists();
+
+        if (!$overlaps) {
+            return null; // لا يوجد أي تداخل
+        }
+
+        // 2. جلب كل الحجوزات في النطاق المطلوب لاقتراح الأوقات
+        // نبحث عن الحجوزات في نطاق أوسع لاقتراح أوقات مناسبة
+        $searchStart = Carbon::parse($requestedStart)->subDay()->toDateTimeString();
+        $searchEnd = Carbon::parse($requestedEnd)->addDays(2)->toDateTimeString();
+
+        $bookings = Rental::where('car_id', $carId)
+            ->whereIn('status', ['active', 'confirmed'])
+            ->when($excludeUserId, function ($q) use ($excludeUserId) {
+                $q->where('user_id', '!=', $excludeUserId);
+            })
+            ->where('end_date', '>', $searchStart)
+            ->where('start_date', '<', $searchEnd)
+            ->orderBy('start_date', 'asc')
+            ->get();
+
+        $availablePeriods = [];
+        $currentTime = Carbon::now();
+
+        // إذا لم يكن هناك حجوزات، اقترح الفترة الحالية
+        if ($bookings->isEmpty()) {
+            $availablePeriods[] = [
+                'start' => $requestedStart,
+                'end' => Carbon::parse($requestedStart)->addHours(2)->toDateTimeString()
+            ];
+            return $availablePeriods;
+        }
+
+        // التحقق من الفترة قبل أول حجز
+        $firstBooking = $bookings->first();
+        if ($currentTime < $firstBooking->start_date) {
+            $availablePeriods[] = [
+                'start' => $currentTime->toDateTimeString(),
+                'end' => $firstBooking->start_date
+            ];
+        }
+
+        // التحقق من الفترات بين الحجوزات
+        for ($i = 0; $i < count($bookings) - 1; $i++) {
+            $currentBooking = $bookings[$i];
+            $nextBooking = $bookings[$i + 1];
+
+            $gapStart = Carbon::parse($currentBooking->end_date);
+            $gapEnd = Carbon::parse($nextBooking->start_date);
+
+            if ($gapStart->diffInHours($gapEnd) >= 1) { // فرق ساعة على الأقل
+                $availablePeriods[] = [
+                    'start' => $gapStart->toDateTimeString(),
+                    'end' => $gapEnd->toDateTimeString()
+                ];
+            }
+        }
+
+        // التحقق من الفترة بعد آخر حجز
+        $lastBooking = $bookings->last();
+        $afterLast = Carbon::parse($lastBooking->end_date);
+        $availablePeriods[] = [
+            'start' => $afterLast->toDateTimeString(),
+            'end' => $afterLast->addDays(1)->toDateTimeString() // اقتراح حتى يوم كامل
+        ];
+
+        return $availablePeriods;
     }
 }

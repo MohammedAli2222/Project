@@ -17,7 +17,9 @@ class car_general_info extends Model
         'gear_box',
         'year',
         'fuel_type',
-        'body_type'
+        'body_type',
+        'vin',
+        'condition'
     ];
 
     public function car()

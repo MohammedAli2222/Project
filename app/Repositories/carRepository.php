@@ -26,6 +26,8 @@ class CarRepository
             'year' => $data['year'],
             'fuel_type' => $data['fuel_type'],
             'body_type' => $data['body_type'],
+            'vin' => $data['vin'],
+            'condition' => $data['condition']
         ]);
     }
 
@@ -99,5 +101,13 @@ class CarRepository
         $car->available_status = $status;
 
         return $car->save();
+    }
+
+    public function getRandomCarsFromMultipleShowrooms(int $limit = 10)
+    {
+        return Car::with('showroom')
+            ->inRandomOrder()
+            ->limit($limit)
+            ->get();
     }
 }

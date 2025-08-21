@@ -81,6 +81,8 @@ Route::group(["middleware" => ["auth:sanctum"]], function () {
     Route::get('/getCars/{showroom_id}', [CarController::class, 'listCarsByShowroom']);
     Route::get('/cars/{carID}/status/{status}', [CarController::class, 'changeCarStatus'])->middleware('check_OfficeOwner');
 
+
+    //Rental
     Route::prefix('rentals')->group(function () {
         Route::post('/mark-rentable', [RentalController::class, 'markCarAsRentable']);
         Route::post('/', [RentalController::class, 'createRental']);

@@ -25,6 +25,20 @@ class CarRequest extends FormRequest
                 'max:255',
             ],
 
+            'vin' => [
+                $isUpdate ? 'sometimes' : 'required',
+                'string',
+                'max:17',
+                'min:11',
+                Rule::unique('car_general_infos')->ignore($carId),
+            ],
+
+            'condition' => [
+                $isUpdate ? 'sometimes' : 'required',
+                Rule::in(['new', 'used']),
+            ],
+
+
             'brand' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
             'model' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
             'gear_box' => [
@@ -114,6 +128,14 @@ class CarRequest extends FormRequest
             'is_rentable.boolean' => 'The is_rentable value must be true or false.',
             'rental_cost_per_hour.numeric' => 'The rental cost per hour must be a number.',
             'rental_cost_per_hour.min' => 'The rental cost per hour must be at least 1.',
+            'vin.required' => 'The VIN (Vehicle Identification Number) is required.',
+            'vin.string' => 'The VIN must be a string.',
+            'vin.max' => 'The VIN cannot be longer than 17 characters.',
+            'vin.min' => 'The VIN must be at least 11 characters.',
+            'vin.unique' => 'The VIN must be unique.',
+            'condition.required' => 'The car condition is required.',
+            'condition.in' => 'The condition must be either new or used.',
+
 
         ];
     }
