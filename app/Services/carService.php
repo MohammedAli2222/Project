@@ -8,7 +8,8 @@ use App\Repositories\CarRepository;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Illuminate\Http\UploadedFile;
+
 
 class CarService
 {
@@ -48,25 +49,17 @@ class CarService
             $this->carRepository->createTechnicalSpec($car->id, $data);
 
             if (isset($data['images']) && is_array($data['images'])) {
-                $imagePathBase = 'car_images/';
-
                 foreach ($data['images'] as $index => $image) {
                     if ($image instanceof UploadedFile) {
-                        $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-                        $destinationPath = public_path($imagePathBase);
-
-                        if (!File::isDirectory($destinationPath)) {
-                            File::makeDirectory($destinationPath, 0755, true, true);
-                        }
-
-                        $image->move($destinationPath, $imageName);
-                        $relativePath = $imagePathBase . $imageName;
+                        $path = $image->store('cars', 'public');
+                        $path = 'storage/' . $path;
 
                         $isMain = (isset($data['main_image_index']) && $data['main_image_index'] == $index);
-                        $this->carRepository->createImage($car->id, $relativePath, $isMain);
+                        $this->carRepository->createImage($car->id, $path, $isMain);
                     }
                 }
             }
+
 
             DB::commit();
 
@@ -130,74 +123,116 @@ class CarService
 
     public function updateCar(int $carID, array $data): array
     {
-        $car = $this->carRepository->findCarById($carID);
+        $userID = auth()->id();
+
+
+        $car = Car::where('id', $carID)
+            ->where('user_id', $userID)
+            ->with(['generalInfo', 'financialInfo', 'technicalSpecs', 'images'])
+            ->first();
 
         if (!$car) {
             return [
                 'status' => false,
-                'message' => 'Car not found.'
+                'message' => 'Car not found or unauthorized.'
             ];
         }
 
         DB::beginTransaction();
 
         try {
-            if (isset($data['name']) || isset($data['brand']) || isset($data['model']) || isset($data['gear_box']) || isset($data['year']) || isset($data['fuel_type']) || isset($data['body_type']) || isset($data['vin']) || isset($data['condition'])) {
-                $car->generalInfo->update([
-                    'name' => $data['name'] ?? $car->generalInfo->name,
-                    'brand' => $data['brand'] ?? $car->generalInfo->brand,
-                    'model' => $data['model'] ?? $car->generalInfo->model,
-                    'gear_box' => $data['gear_box'] ?? $car->generalInfo->gear_box,
-                    'year' => $data['year'] ?? $car->generalInfo->year,
-                    'fuel_type' => $data['fuel_type'] ?? $car->generalInfo->fuel_type,
-                    'body_type' => $data['body_type'] ?? $car->generalInfo->body_type,
-                    'vin' => $data['vin'] ?? $car->generalInfo->vin,
-                    'condition' => $data['condition'] ?? $car->generalInfo->condition,
-                ]);
+
+            $generalInfoFields = [
+                'name',
+                'brand',
+                'model',
+                'gear_box',
+                'year',
+                'fuel_type',
+                'body_type',
+                'vin',
+                'condition'
+            ];
+
+            $generalInfoData = [];
+            foreach ($generalInfoFields as $field) {
+                if (array_key_exists($field, $data)) {
+                    $generalInfoData[$field] = $data[$field];
+                }
             }
 
-            if (isset($data['price']) || isset($data['currency']) || isset($data['negotiable']) || isset($data['discount_percentage']) || isset($data['discount_amount'])) {
-                $car->financialInfo->update([
-                    'price' => $data['price'] ?? $car->financialInfo->price,
-                    'currency' => $data['currency'] ?? $car->financialInfo->currency,
-                    'negotiable' => $data['negotiable'] ?? $car->financialInfo->negotiable,
-                    'discount_percentage' => $data['discount_percentage'] ?? $car->financialInfo->discount_percentage,
-                    'discount_amount' => $data['discount_amount'] ?? $car->financialInfo->discount_amount,
-                ]);
+            if (!empty($generalInfoData) && $car->generalInfo) {
+                $car->generalInfo->update($generalInfoData);
             }
 
-            if (isset($data['horse_power']) || isset($data['engine_type']) || isset($data['cylinders'])) {
-                $car->technicalSpecs->update([
-                    'horse_power' => $data['horse_power'] ?? $car->technicalSpecs->horse_power,
-                    'engine_type' => $data['engine_type'] ?? $car->technicalSpecs->engine_type,
-                    'cylinders' => $data['cylinders'] ?? $car->technicalSpecs->cylinders,
-                ]);
+            
+            $financialInfoFields = [
+                'price',
+                'currency',
+                'negotiable',
+                'discount_percentage',
+                'discount_amount'
+            ];
+
+            $financialInfoData = [];
+            foreach ($financialInfoFields as $field) {
+                if (array_key_exists($field, $data)) {
+                    $financialInfoData[$field] = $data[$field];
+                }
             }
 
-            if (isset($data['images']) && is_array($data['images'])) {
-                $imagePathBase = 'car_images/';
+            if (!empty($financialInfoData) && $car->financialInfo) {
+                $car->financialInfo->update($financialInfoData);
+            }
 
+            // تحديث المواصفات التقنية (إذا توفرت)
+            $technicalSpecFields = ['horse_power', 'engine_type', 'cylinders'];
+
+            $technicalSpecData = [];
+            foreach ($technicalSpecFields as $field) {
+                if (array_key_exists($field, $data)) {
+                    $technicalSpecData[$field] = $data[$field];
+                }
+            }
+
+            if (!empty($technicalSpecData) && $car->technicalSpecs) {
+                $car->technicalSpecs->update($technicalSpecData);
+            }
+
+            // تحديث حقول السيارة الأساسية (rentable fields)
+            $carMainFields = ['is_rentable', 'rental_cost_per_hour'];
+
+            $carMainData = [];
+            foreach ($carMainFields as $field) {
+                if (array_key_exists($field, $data)) {
+                    $carMainData[$field] = $data[$field];
+                }
+            }
+
+            if (!empty($carMainData)) {
+                $car->update($carMainData);
+            }
+
+            // معالجة الصور (إذا توفرت صور جديدة)
+            if (isset($data['images']) && is_array($data['images']) && !empty($data['images'])) {
+                // حذف الصور القديمة
                 foreach ($car->images as $image) {
-                    if (File::exists(public_path($image->image_path))) {
-                        File::delete(public_path($image->image_path));
+                    $fullPath = public_path($image->image_path);
+                    if (File::exists($fullPath)) {
+                        File::delete($fullPath);
                     }
                     $image->delete();
                 }
 
+                // إضافة الصور الجديدة
+                $mainImageIndex = $data['main_image_index'] ?? 0;
 
                 foreach ($data['images'] as $index => $image) {
                     if ($image instanceof UploadedFile) {
-                        $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-                        $destinationPath = public_path($imagePathBase);
+                        $path = $image->store('cars', 'public');
+                        $relativePath = 'storage/' . $path;
 
-                        if (!File::isDirectory($destinationPath)) {
-                            File::makeDirectory($destinationPath, 0755, true, true);
-                        }
-
-                        $image->move($destinationPath, $imageName);
-                        $relativePath = $imagePathBase . $imageName;
-
-                        $isMain = (isset($data['main_image_index']) && $data['main_image_index'] == $index);
+                        $isMain = ($mainImageIndex == $index);
                         $this->carRepository->createImage($car->id, $relativePath, $isMain);
                     }
                 }
@@ -205,6 +240,8 @@ class CarService
 
             DB::commit();
 
+            // إعادة تحميل البيانات المحدثة
+            $car->refresh();
             $car->load(['generalInfo', 'financialInfo', 'technicalSpecs', 'images']);
 
             return [
@@ -214,7 +251,6 @@ class CarService
             ];
         } catch (Exception $e) {
             DB::rollBack();
-
             return [
                 'status' => false,
                 'message' => 'Failed to update car: ' . $e->getMessage(),
@@ -265,8 +301,6 @@ class CarService
             'message' => 'Failed to update status.'
         ];
     }
-
-
     public function getRandomCarsForHomepage(int $limit = 10)
     {
         return $this->carRepository->getRandomCarsFromMultipleShowrooms($limit);

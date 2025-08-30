@@ -30,7 +30,6 @@ class CarRepository
             'condition' => $data['condition']
         ]);
     }
-
     public function createFinancialInfo(int $carId, array $data)
     {
         return car_financial_info::create([
@@ -42,7 +41,6 @@ class CarRepository
             'discount_amount' => $data['discount_amount'] ?? null,
         ]);
     }
-
     public function createTechnicalSpec(int $carId, array $data)
     {
         return car_technical_spec::create([
@@ -52,8 +50,34 @@ class CarRepository
             'cylinders' => $data['cylinders'],
         ]);
     }
+    ////////////////////////////////
 
-    public function createImage(int $carId, string $imagePath, bool $isMain = false)
+    public function updateCarGeneralInfo(int $carId, array $data): bool
+    {
+        return car_general_info::where('car_id', $carId)->update($data) > 0;
+    }
+
+    public function updateCarFinancialInfo(int $carId, array $data): bool
+    {
+        return car_financial_info::where('car_id', $carId)->update($data) > 0;
+    }
+
+    public function updateCarTechnicalSpec(int $carId, array $data): bool
+    {
+        return car_technical_spec::where('car_id', $carId)->update($data) > 0;
+    }
+
+    public function updateCarMainInfo(int $carId, array $data): bool
+    {
+        return Car::where('id', $carId)->update($data) > 0;
+    }
+
+    public function deleteCarImages(int $carId): bool
+    {
+        return car_images::where('car_id', $carId)->delete() > 0;
+    }
+
+    public function createImage(int $carId, string $imagePath, bool $isMain = false): car_images
     {
         return car_images::create([
             'car_id' => $carId,
@@ -62,6 +86,15 @@ class CarRepository
         ]);
     }
 
+    ////////////////////////
+    // public function createImage(int $carId, string $imagePath, bool $isMain = false)
+    // {
+    //     return car_images::create([
+    //         'car_id' => $carId,
+    //         'image_path' => $imagePath,
+    //         'is_main' => $isMain,
+    //     ]);
+    // }
     public function delete(int $userID, int $showroom_id, int $car_id): bool
     {
         return Car::where('user_id', $userID)
@@ -69,7 +102,6 @@ class CarRepository
             ->where('id', $car_id)
             ->delete() > 0;
     }
-
     public function findCar(int $showroom_id, int $car_id)
     {
         return Car::where('id', $car_id)
@@ -77,14 +109,12 @@ class CarRepository
             ->with(['generalInfo', 'financialInfo', 'technicalSpecs', 'images'])
             ->first();
     }
-
     public function listCarsInShowroom(int $showroom_id)
     {
         return Car::where('showroom_id', $showroom_id)
             ->with(['generalInfo', 'financialInfo', 'technicalSpecs', 'images'])
             ->get();
     }
-
     public function findCarById(int $carID)
     {
         return Car::with(['generalInfo', 'financialInfo', 'technicalSpecs', 'images'])->find($carID);
@@ -102,7 +132,6 @@ class CarRepository
 
         return $car->save();
     }
-
     public function getRandomCarsFromMultipleShowrooms(int $limit = 10)
     {
         return Car::with('showroom')

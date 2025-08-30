@@ -24,6 +24,7 @@ use App\Http\Controllers\VerificationController;
 
 Route::post('sign-in', action: [AuthController::class, 'Register']);
 Route::post('login', [AuthController::class, 'login']);
+Route::get('random', [CarController::class, 'getRandomCars']);
 
 
 Route::group(["middleware" => ["auth:sanctum"]], function () {
@@ -55,11 +56,7 @@ Route::group(["middleware" => ["auth:sanctum"]], function () {
             Route::get('/pending', [VerificationController::class, 'getPendingVerifications']);
             Route::get('/pending/users', [VerificationController::class, 'getPendingUserVerifications']);
             Route::get('/pending/showrooms', [VerificationController::class, 'getPendingShowroomVerifications']);
-            // Route::put('/user/{id_verification}/approve', [VerificationController::class, 'approveUserVerification']);
-            // Route::put('/user/{id_verification}/reject', [VerificationController::class, 'rejectUserVerification']);
-            // Route::put('/showroom/{id_verification}/approve', [VerificationController::class, 'approveShowroomVerification']);
-            // Route::put('/showroom/{id_verification}/reject', [VerificationController::class, 'rejectShowroomVerification']);
-            Route::post('update',[VerificationController::class,'update']);
+            Route::post('update', [VerificationController::class, 'update']);
         });
     });
 
@@ -75,12 +72,14 @@ Route::group(["middleware" => ["auth:sanctum"]], function () {
     });
 
     //Car
-    Route::post('/addCar/{showroom_id}', [CarController::class, 'addCar'])->middleware('check_OfficeOwner');
-    Route::delete('/deletCar/{showroom_id}/{car_id}', [CarController::class, 'deleteCar'])->middleware('check_OfficeOwner');
-    Route::get('/getCar/{showroom_id}/{car_id}', [CarController::class, 'getCar']);
-    Route::get('/getCars/{showroom_id}', [CarController::class, 'listCarsByShowroom']);
-    Route::get('/cars/{carID}/status/{status}', [CarController::class, 'changeCarStatus'])->middleware('check_OfficeOwner');
-
+    Route::prefix('car')->middleware('auth:sanctum')->group(function () {
+        Route::post('/add/{showroom_id}', [CarController::class, 'addCar'])->middleware('check_OfficeOwner');
+        Route::delete('/delet/{showroom_id}/{car_id}', [CarController::class, 'deleteCar'])->middleware('check_OfficeOwner');
+        Route::get('/get/{showroom_id}/{car_id}', [CarController::class, 'getCar']);
+        Route::get('/getCars/{showroom_id}', [CarController::class, 'listCarsByShowroom']);
+        Route::get('/{carID}/status/{status}', [CarController::class, 'changeCarStatus'])->middleware('check_OfficeOwner');
+        Route::put('/cars/{car}', [CarController::class, 'updateCar'])->middleware('check_OfficeOwner');
+    });
 
     //Rental
     Route::prefix('rentals')->group(function () {
@@ -97,10 +96,11 @@ Route::group(["middleware" => ["auth:sanctum"]], function () {
         Route::post('/create', [AuctionController::class, 'createAuction']);
         Route::put('/{id}/update', [AuctionController::class, 'updateAuction']);
         Route::delete('/{id}/delete', [AuctionController::class, 'deleteAuction']);
-        Route::post('/{id}/cancel', [AuctionController::class, 'cancelAuction']);
 
+        Route::post('/{id}/cancel', [AuctionController::class, 'cancelAuction']);
         Route::get('/active', [AuctionController::class, 'getActiveAuctions']);
         Route::get('/{id}', [AuctionController::class, 'getAuction']);
+
         Route::get('/{id}/bids', [AuctionController::class, 'getBids']);
         Route::get('/showroom/{id}', [AuctionController::class, 'getShowroomAuctions']);
         Route::post('/bid', [AuctionController::class, 'placeBid']);

@@ -35,21 +35,22 @@ class CarController extends Controller
         ], 201);
     }
 
-    public function updateCar(int $carID, CarRequest $carRequest): JsonResponse
+    public function updateCar(int $carID, CarRequest $request): JsonResponse
     {
-        $validatedData = $carRequest->validated();
+        $result = $this->carService->updateCar($carID, $request->validated());
 
-        $result = $this->carService->updateCar($carID, $validatedData);
-
-        if (!$result['status']) {
-            return response()->json(['message' => $result['message']], 404);
+        if ($result['status']) {
+            return response()->json([
+                'status' => true,
+                'message' => $result['message'],
+                'car' => new CarResource($result['car'])
+            ], 200);
         }
 
         return response()->json([
-            'status' => true,
-            'message' => $result['message'],
-            'car' => new CarResource($result['car']),
-        ]);
+            'status' => false,
+            'message' => $result['message']
+        ], 400);
     }
     public function deleteCar(int $showroom_id, int $car_id): JsonResponse
     {
@@ -102,7 +103,6 @@ class CarController extends Controller
             'message' => $result['message'],
         ]);
     }
-
     public function getRandomCars()
     {
         $cars = $this->carService->getRandomCarsForHomepage();
