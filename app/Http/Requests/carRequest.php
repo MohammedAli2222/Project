@@ -12,67 +12,68 @@ class CarRequest extends FormRequest
         return true;
     }
 
-  public function rules(): array
-{
-    $isUpdate = $this->method() === 'PUT' || $this->method() === 'PATCH';
-    $carId = $this->route('car');
+    public function rules(): array
+    {
+        // إذا في car بالمسار معناها تحديث
+        $isUpdate = $this->route('car') !== null;
+        $carId = $this->route('car');
 
-    return [
-        'name' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
-        'brand' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
-        'model' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
-        'gear_box' => [
-            $isUpdate ? 'sometimes' : 'required',
-            Rule::in(['manual', 'automatic', 'cvt']),
-        ],
-        'year' => [
-            $isUpdate ? 'sometimes' : 'required',
-            'integer',
-            'min:1900',
-            'max:' . (date('Y') + 1),
-        ],
-        'fuel_type' => [
-            $isUpdate ? 'sometimes' : 'required',
-            Rule::in(['petrol', 'diesel', 'hybrid', 'electric']),
-        ],
-        'body_type' => [
-            $isUpdate ? 'sometimes' : 'required',
-            Rule::in(['sedan', 'suv', 'hatchback', 'coupe', 'convertible', 'truck']),
-        ],
-        'vin' => [
-            $isUpdate ? 'sometimes' : 'required',
-            'string',
-            'max:17',
-            'min:11',
-            Rule::unique('car_general_infos')->ignore($carId),
-        ],
-        'condition' => [
-            $isUpdate ? 'sometimes' : 'required',
-            Rule::in(['new', 'used']),
-        ],
-        'price' => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0'],
-        'currency' => ['nullable', 'string', 'max:3'],
-        'negotiable' => ['sometimes', 'boolean'],
-        'discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
-        'discount_amount' => ['nullable', 'numeric', 'min:0'],
-        'horse_power' => [$isUpdate ? 'sometimes' : 'required', 'integer', 'min:1'],
-        'engine_type' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
-        'cylinders' => [$isUpdate ? 'sometimes' : 'required', 'integer', 'min:1'],
-        'is_rentable' => ['sometimes', 'boolean'],
-        'rental_cost_per_hour' => [
-            'nullable',
-            'numeric',
-            'min:1',
-            function ($attribute, $value, $fail) {
-                if (request()->input('is_rentable') && empty($value)) {
-                    $fail('The rental cost per hour is required when the car is rentable.');
+        return [
+            'name' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
+            'brand' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
+            'model' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
+            'gear_box' => [
+                $isUpdate ? 'sometimes' : 'required',
+                Rule::in(['manual', 'automatic', 'cvt']),
+            ],
+            'year' => [
+                $isUpdate ? 'sometimes' : 'required',
+                'integer',
+                'min:1900',
+                'max:' . (date('Y') + 1),
+            ],
+            'fuel_type' => [
+                $isUpdate ? 'sometimes' : 'required',
+                Rule::in(['petrol', 'diesel', 'hybrid', 'electric']),
+            ],
+            'body_type' => [
+                $isUpdate ? 'sometimes' : 'required',
+                Rule::in(['sedan', 'suv', 'hatchback', 'coupe', 'convertible', 'truck']),
+            ],
+            'vin' => [
+                $isUpdate ? 'sometimes' : 'required',
+                'string',
+                'max:17',
+                'min:11',
+                Rule::unique('car_general_infos')->ignore($carId),
+            ],
+            'condition' => [
+                $isUpdate ? 'sometimes' : 'required',
+                Rule::in(['new', 'used']),
+            ],
+            'price' => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0'],
+            'currency' => ['nullable', 'string', 'max:3'],
+            'negotiable' => ['sometimes', 'boolean'],
+            'discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'discount_amount' => ['nullable', 'numeric', 'min:0'],
+            'horse_power' => [$isUpdate ? 'sometimes' : 'required', 'integer', 'min:1'],
+            'engine_type' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
+            'cylinders' => [$isUpdate ? 'sometimes' : 'required', 'integer', 'min:1'],
+            'is_rentable' => ['sometimes', 'boolean'],
+            'rental_cost_per_hour' => [
+                'nullable',
+                'numeric',
+                'min:1',
+                function ($attribute, $value, $fail) {
+                    if (request()->input('is_rentable') && empty($value)) {
+                        $fail('The rental cost per hour is required when the car is rentable.');
+                    }
                 }
-            }
-        ],
-        'images.*' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
-        'main_image_index' => ['nullable', 'integer', 'min:0'],
-    ];
-}
+            ],
+            'images.*' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
+            'main_image_index' => ['nullable', 'integer', 'min:0'],
+        ];
+    }
 
     public function messages(): array
     {
@@ -122,8 +123,6 @@ class CarRequest extends FormRequest
             'vin.unique' => 'The VIN must be unique.',
             'condition.required' => 'The car condition is required.',
             'condition.in' => 'The condition must be either new or used.',
-
-
         ];
     }
 }

@@ -74,11 +74,11 @@ Route::group(["middleware" => ["auth:sanctum"]], function () {
     //Car
     Route::prefix('car')->middleware('auth:sanctum')->group(function () {
         Route::post('/add/{showroom_id}', [CarController::class, 'addCar'])->middleware('check_OfficeOwner');
-        Route::delete('/delet/{showroom_id}/{car_id}', [CarController::class, 'deleteCar'])->middleware('check_OfficeOwner');
+        Route::delete('/delete/{showroom_id}/{car_id}', [CarController::class, 'deleteCar'])->middleware('check_OfficeOwner');
         Route::get('/get/{showroom_id}/{car_id}', [CarController::class, 'getCar']);
         Route::get('/getCars/{showroom_id}', [CarController::class, 'listCarsByShowroom']);
         Route::get('/{carID}/status/{status}', [CarController::class, 'changeCarStatus'])->middleware('check_OfficeOwner');
-        Route::put('/cars/{car}', [CarController::class, 'updateCar'])->middleware('check_OfficeOwner');
+        Route::post('/update/{car}', [CarController::class, 'updateCar'])->middleware('check_OfficeOwner');
     });
 
     //Rental

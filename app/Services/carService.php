@@ -19,7 +19,6 @@ class CarService
     {
         $this->carRepository = $carRepository;
     }
-
     public function store(int $showroom_id, array $data): array
     {
         $userID = auth()->id();
@@ -79,7 +78,6 @@ class CarService
             ];
         }
     }
-
     public function deleteCar(int $car_id, int $showroom_id): array
     {
         $userID = auth()->id();
@@ -98,14 +96,12 @@ class CarService
             'message' => 'Car not found or you do not have permission',
         ];
     }
-
     public function getCarById(int $showroom_id, int $car_id): ?object
     {
         $car = $this->carRepository->findCar($showroom_id, $car_id);
 
         return $car;
     }
-
     public function listCars(int $showroom_id): ?\Illuminate\Support\Collection
     {
         $userID = auth()->id();
@@ -120,11 +116,9 @@ class CarService
 
         return $this->carRepository->listCarsInShowroom($showroom_id);
     }
-
     public function updateCar(int $carID, array $data): array
     {
         $userID = auth()->id();
-
 
         $car = Car::where('id', $carID)
             ->where('user_id', $userID)
@@ -141,7 +135,7 @@ class CarService
         DB::beginTransaction();
 
         try {
-
+            // تحديث المعلومات العامة
             $generalInfoFields = [
                 'name',
                 'brand',
@@ -165,7 +159,7 @@ class CarService
                 $car->generalInfo->update($generalInfoData);
             }
 
-            
+            // تحديث المعلومات المالية
             $financialInfoFields = [
                 'price',
                 'currency',
@@ -185,7 +179,7 @@ class CarService
                 $car->financialInfo->update($financialInfoData);
             }
 
-            // تحديث المواصفات التقنية (إذا توفرت)
+            // تحديث المواصفات التقنية
             $technicalSpecFields = ['horse_power', 'engine_type', 'cylinders'];
 
             $technicalSpecData = [];
@@ -199,7 +193,7 @@ class CarService
                 $car->technicalSpecs->update($technicalSpecData);
             }
 
-            // تحديث حقول السيارة الأساسية (rentable fields)
+            // تحديث حقول السيارة الأساسية
             $carMainFields = ['is_rentable', 'rental_cost_per_hour'];
 
             $carMainData = [];
@@ -213,18 +207,19 @@ class CarService
                 $car->update($carMainData);
             }
 
-            // معالجة الصور (إذا توفرت صور جديدة)
+
             if (isset($data['images']) && is_array($data['images']) && !empty($data['images'])) {
-                // حذف الصور القديمة
+
                 foreach ($car->images as $image) {
+
                     $fullPath = public_path($image->image_path);
                     if (File::exists($fullPath)) {
                         File::delete($fullPath);
                     }
+
                     $image->delete();
                 }
 
-                // إضافة الصور الجديدة
                 $mainImageIndex = $data['main_image_index'] ?? 0;
 
                 foreach ($data['images'] as $index => $image) {
@@ -240,7 +235,6 @@ class CarService
 
             DB::commit();
 
-            // إعادة تحميل البيانات المحدثة
             $car->refresh();
             $car->load(['generalInfo', 'financialInfo', 'technicalSpecs', 'images']);
 
@@ -257,7 +251,6 @@ class CarService
             ];
         }
     }
-
     public function changeStatus(int $carID, string $status): array
     {
         $car = $this->carRepository->findCarById($carID);
