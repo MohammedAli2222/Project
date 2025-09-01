@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('location');
             $table->string('logo')->nullable();
             $table->string('phone', 10)->nullable();
+            $table->boolean('is_verif')->default(false);
             $table->unique(['user_id', 'name', 'location'], 'unique_showroom_per_user_location');
             $table->index(['name', 'location']);
             $table->timestamps();

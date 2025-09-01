@@ -8,6 +8,7 @@ use App\Models\verification;
 use Illuminate\Http\Request;
 use App\Repositories\VerificationRepository;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class VerificationService
@@ -35,19 +36,15 @@ class VerificationService
         }
 
         $document = $request->file('document');
-
         $documentName = time() . '_' . $document->getClientOriginalName();
 
-        $destinationPath = public_path('verifications');
-
-        $document->move($destinationPath, $documentName);
-
-        $documentPath = 'verifications/' . $documentName;
-
+        $documentPath = $document->storeAs('verifications', $documentName, 'public');
         $created = $this->verificationRepository->createUserVerification($user->id, $documentPath);
 
-
         if ($created === false) {
+
+            Storage::disk('public')->delete($documentPath);
+
             return response()->json([
                 'status' => 0,
                 'message' => 'Verification already exists.'
@@ -56,7 +53,8 @@ class VerificationService
 
         return response()->json([
             'status' => 1,
-            'message' => 'Verification submitted successfully.'
+            'message' => 'Verification submitted successfully.',
+            'file_url' => asset('storage/' . $documentPath)
         ]);
     }
     public function ShowroomVerification(Request $request)
@@ -75,11 +73,17 @@ class VerificationService
             ], 422);
         }
 
-        $documentPath = $request->file('document')->store('verifications', 'public');
+        $document = $request->file('document');
+        $documentName = time() . '_' . $document->getClientOriginalName();
+
+        $documentPath = $document->storeAs('verifications', $documentName, 'public');
 
         $created = $this->verificationRepository->createShowroomVerification($request->showroom_id, $documentPath);
 
         if ($created === false) {
+            // حذف الملف إذا لم يتم إنشاء السجل في الداتا بيز
+            Storage::disk('public')->delete($documentPath);
+
             return response()->json([
                 'status' => 0,
                 'message' => 'Verification already exists.'
@@ -88,15 +92,9 @@ class VerificationService
 
         return response()->json([
             'status' => 1,
-            'message' => 'Verification submitted successfully.'
+            'message' => 'Verification submitted successfully.',
+            'file_url' => asset('storage/' . $documentPath)
         ]);
-    }
-    public function getStatusVerification()
-    {
-
-        $user = Auth::user();
-
-        return $this->verificationRepository->getStatus($user);
     }
     public function getVerificationDetails($id)
     {
@@ -139,38 +137,6 @@ class VerificationService
             'status' => true,
             'verification' => $verification
         ];
-    }
-    public function updateStatus($id, Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'status' => 'required|string|in:Pending,Approved,Rejected',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $updatedVerification = $this->verificationRepository->changeStatus($id, $request->status);
-
-        if (!$updatedVerification) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Verification record not found or could not be updated.'
-            ], 404);
-        }
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Verification status updated successfully.',
-            'data' => [
-                'id' => $updatedVerification->id,
-                'new_status' => $updatedVerification->status,
-                'type' => $updatedVerification->type
-            ]
-        ]);
     }
     public function getPendingVerifications()
     {
@@ -277,99 +243,47 @@ class VerificationService
             'verifications' => $formattedVerifications
         ];
     }
-
-
-    // public function approveUserVerification($verificationId)
-    // {
-    //     $verification = $this->verificationRepository->approveUserVerification($verificationId);
-
-    //     if (!$verification) {
-    //         return [
-    //             'status' => false,
-    //             'message' => 'Verification not found or not a user verification'
-    //         ];
-    //     }
-
-    //     return [
-    //         'status' => true,
-    //         'message' => 'User verification approved and role updated to OfficeOwner',
-    //         'verification' => $verification
-    //     ];
-    // }
-
-    // public function rejectUserVerification($verificationId)
-    // {
-    //     $verification = $this->verificationRepository->rejectUserVerification($verificationId);
-
-    //     if (!$verification) {
-    //         return [
-    //             'status' => false,
-    //             'message' => 'Verification not found or not a user verification'
-    //         ];
-    //     }
-
-    //     return [
-    //         'status' => true,
-    //         'message' => 'User verification rejected',
-    //         'verification' => $verification
-    //     ];
-    // }
-
-    // public function approveShowroomVerification($verificationId)
-    // {
-    //     $updated = $this->verificationRepository->approveShowroomVerification($verificationId);
-
-    //     return [
-    //         'status' => (bool)$updated,
-    //         'message' => $updated ? 'تم توثيق المعرض بنجاح' : 'طلب التوثيق غير صالح',
-    //         'data' => $updated ? verification::find($verificationId) : null
-    //     ];
-    // }
-
-    // public function rejectShowroomVerification($verificationId, $reason = null)
-    // {
-    //     $updated = $this->verificationRepository->rejectShowroomVerification($verificationId, $reason);
-
-    //     return [
-    //         'status' => (bool)$updated,
-    //         'message' => $updated ? 'تم رفض توثيق المعرض' : 'طلب التوثيق غير صالح',
-    //         'data' => $updated ? Verification::find($verificationId) : null
-    //     ];
-    // }
-
-
     public function updateVerificationStatus(int $verificationId, string $status): array
     {
-        if (!in_array($status, ['approved', 'rejected'])) {
+        $status = ucfirst(strtolower($status));
+
+        if (!in_array($status, ['Approved', 'Rejected'])) {
             return [
                 'status' => false,
                 'message' => 'Invalid status value.'
             ];
         }
 
+
         $verification = $this->verificationRepository->findVerificationById($verificationId);
 
         if (!$verification) {
             return [
                 'status' => false,
-                'message' => 'Verification request not found. '
+                'message' => 'Verification request not found.'
             ];
         }
-
         $verification->status = $status;
         $verification->save();
 
-        if ($verification-> type === User::class) {
-            $message = $status === 'approved'
-                ? 'User verification approved successfully.'
-                : 'User verification rejected.';
-        } elseif ($verification-> type === Showroom::class) {
-            $message = $status === 'approved'
-                ? 'Showroom verification approved successfully.'
-                : 'Showroom verification rejected.';
-        } else {
-            $message = 'Verification updated.';
+        if ($status === 'Approved') {
+            if ($verification->type === 'USER' && $verification->user) {
+                $verification->user->role_id = 2;
+                $verification->user->is_verif = true;
+                $verification->user->save();
+            }
+
+            if ($verification->type === 'Showroom' && $verification->showroom) {
+                $verification->showroom->is_verif = true;
+                $verification->showroom->save();
+            }
         }
+
+        $message = match ($verification->type) {
+            'USER' => $status === 'Approved' ? 'User verification approved successfully.' : 'User verification rejected.',
+            'Showroom' => $status === 'Approved' ? 'Showroom verification approved successfully.' : 'Showroom verification rejected.',
+            default => 'Verification updated.'
+        };
 
         return [
             'status' => true,

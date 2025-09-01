@@ -20,12 +20,9 @@ return new class extends Migration
 
             $table->unsignedBigInteger('showroom_id')->nullable();
             $table->foreign('showroom_id')->references('id')->on('showrooms')->onDelete('cascade');
-
             $table->Enum('type', ['USER', 'Showroom']);
             $table->string('document_path');
             $table->Enum('status', ['Rejected', 'Approved', 'Pending']);
-            // $table->unique(['user_id', 'type']);
-            // $table->unique(['showroom_id', 'type']);
             $table->timestamps();
         });
     }

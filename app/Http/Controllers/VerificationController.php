@@ -16,7 +16,6 @@ class VerificationController extends Controller
     {
         $this->verificationService = $verificationService;
     }
-
     public function userVerification(Request $request)
     {
         return $this->verificationService->UserVerification($request);
@@ -24,10 +23,6 @@ class VerificationController extends Controller
     public function showroomVerification(Request $request)
     {
         return $this->verificationService->ShowroomVerification($request);
-    }
-    public function statusUserVerification()
-    {
-        return $this->verificationService->getStatusVerification();
     }
     public function getVerificationStatus()
     {
@@ -112,10 +107,6 @@ class VerificationController extends Controller
         }
         return response()->json($response, 200);
     }
-    public function updateStatusVerification($id, Request $request)
-    {
-        return $this->verificationService->updateStatus($id, $request);
-    }
     public function getPendingVerifications()
     {
         $response = $this->verificationService->getPendingVerifications();
@@ -146,36 +137,11 @@ class VerificationController extends Controller
 
         return response()->json($response, 200);
     }
-    // public function approveUserVerification($verificationId)
-    // {
-    //     $response = $this->verificationService->approveUserVerification($verificationId);
-    //     return response()->json($response, $response['status'] ? 200 : 404);
-    // }
-    // public function rejectUserVerification($verificationId)
-    // {
-    //     $response = $this->verificationService->rejectUserVerification($verificationId);
-    //     return response()->json($response, $response['status'] ? 200 : 404);
-    // }
-    // public function approveShowroomVerification($verificationId)
-    // {
-    //     $response = $this->verificationService->approveShowroomVerification($verificationId);
-    //     return response()->json($response, $response['status'] ? 200 : 404);
-    // }
-    // public function rejectShowroomVerification(Request $request, $verificationId)
-    // {
-    //     $response = $this->verificationService->rejectShowroomVerification(
-    //         $verificationId,
-    //         $request->input('reason')
-    //     );
-
-    //     return response()->json($response, $response['status'] ? 200 : 404);
-    // }
-
     public function update(Request $request)
     {
         $request->validate([
             'id' => 'required|integer',
-            'status' => 'required|in:approved,rejected',
+            'status' => 'required|in:Approved,Rejected',
         ]);
 
         $result = $this->verificationService->updateVerificationStatus($request->id, $request->status);

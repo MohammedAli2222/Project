@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('password');
             $table->string('profile_picture')->nullable();
             $table->foreignId('role_id')->constrained()->onDelete('cascade');
+            $table->boolean('is_verif')->default(false);
             $table->rememberToken();
             $table->timestamps();
         });
@@ -37,6 +38,7 @@ return new class extends Migration
                 'phone' => '0981617644',
                 'password' => Hash::make('admin123'),
                 'role_id' => '1',
+                'is_verif' => true,
                 'created_at' => now(),
                 'updated_at' => now()
             ],

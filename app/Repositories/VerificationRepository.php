@@ -2,8 +2,6 @@
 
 namespace App\Repositories;
 
-use App\Models\Role;
-use App\Models\User;
 use App\Models\Verification;
 
 class VerificationRepository
@@ -22,7 +20,6 @@ class VerificationRepository
             'status' => 'Pending',
         ]);
     }
-
     public function createShowroomVerification($showroomId, $documentPath)
     {
         $exists = Verification::where('showroom_id', $showroomId)->where('type', 'Showroom')->first();
@@ -34,15 +31,6 @@ class VerificationRepository
             'document_path' => $documentPath,
             'status' => 'Pending',
         ]);
-    }
-
-    public function getStatus(User $user)
-    {
-
-        $status = Verification::where('user_id', $user->id)->first();
-        return [
-            'status' => $status ? $status->status : null,
-        ];
     }
     public function getShowroomStatus($showroomId)
     {
@@ -62,7 +50,6 @@ class VerificationRepository
     {
         return Verification::where('type', 'showroom')->get();
     }
-
     public function findPendingVerifications()
     {
         return Verification::where('status', 'Pending')
@@ -70,7 +57,6 @@ class VerificationRepository
             ->orderBy('created_at', 'desc')
             ->get();
     }
-
     public function findPendingUserVerifications()
     {
         return Verification::where('status', 'Pending')
@@ -79,7 +65,6 @@ class VerificationRepository
             ->orderBy('created_at', 'desc')
             ->get();
     }
-
     public function findPendingShowroomVerifications()
     {
         return Verification::where('status', 'Pending')
@@ -100,70 +85,4 @@ class VerificationRepository
 
         return $verification;
     }
-    // public function approveUserVerification($verificationId)
-    // {
-    //     $verification = Verification::find($verificationId);
-
-    //     if (!$verification || $verification->type !== 'USER') {
-    //         return false;
-    //     }
-
-    //     $verification->status = 'Approved';
-    //     $verification->save();
-
-    //     $user = $verification->user;
-    //     $officeOwnerRole = Role::where('role', 'OfficeOwner')->first();
-
-    //     if ($user && $officeOwnerRole) {
-    //         $user->role_id = $officeOwnerRole->id;
-    //         $user->save();
-    //     }
-
-    //     return $verification;
-    // }
-    // public function rejectUserVerification($verificationId)
-    // {
-    //     $verification = Verification::find($verificationId);
-
-    //     if (!$verification || $verification->type !== 'USER') {
-    //         return false;
-    //     }
-
-    //     $verification->status = 'Rejected';
-    //     return $verification->save();
-    // }
-    // public function approveShowroomVerification($verificationId)
-    // {
-    //     $verification = Verification::find($verificationId);
-
-    //     if (!$verification || $verification->type !== 'Showroom') {
-    //         return false;
-    //     }
-
-    //     $verification->status = 'Approved';
-    //     return $verification->save();
-    // }
-    // public function rejectShowroomVerification($verificationId, $reason = null)
-    // {
-    //     $verification = Verification::find($verificationId);
-
-    //     if (!$verification || $verification->type !== 'Showroom') {
-    //         return false;
-    //     }
-
-    //     $verification->status = 'Rejected';
-    //     $verification->rejection_reason = $reason;
-    //     return $verification->save();
-    // }
-
-    // public function isShowroomVerified($showroomId)
-    // {
-    //     return Verification::where('showroom_id', $showroomId)
-    //            ->where('status', 'Approved')
-    //            ->exists();
-    // }
-
-
-
-
 }

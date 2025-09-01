@@ -52,7 +52,6 @@ Route::group(["middleware" => ["auth:sanctum"]], function () {
             Route::get('/status/{id}', [VerificationController::class, 'showVerificationDetails']);
             Route::get('/allUsers', [VerificationController::class, 'showaAllVerificationUser']);
             Route::get('/allShowroom', [VerificationController::class, 'showaAllVerificationShowroom']);
-            Route::put('/updateStatus/{id}', [VerificationController::class, 'updateStatusVerification']);
             Route::get('/pending', [VerificationController::class, 'getPendingVerifications']);
             Route::get('/pending/users', [VerificationController::class, 'getPendingUserVerifications']);
             Route::get('/pending/showrooms', [VerificationController::class, 'getPendingShowroomVerifications']);
