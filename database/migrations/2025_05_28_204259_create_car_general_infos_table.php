@@ -23,6 +23,33 @@ return new class extends Migration
             $table->year('year');
             $table->enum('fuel_type', ['petrol', 'diesel', 'hybrid', 'electric']);
             $table->enum('body_type', ['sedan', 'suv', 'hatchback', 'coupe', 'convertible', 'truck']);
+            $table->enum('color', [
+                'White',
+                'Grey',
+                'Black',
+                'Light Red',
+                'Red',
+                'Dark Red',
+                'Light Blue',
+                'Blue',
+                'Dark Blue',
+                'Light Green',
+                'Green',
+                'Dark Green',
+                'Light Pink',
+                'Pink',
+                'Dark Pink',
+                'Light Purple',
+                'Purple',
+                'Dark Purple',
+                'Light Yellow',
+                'Yellow',
+                'Dark Yellow',
+                'Beige',
+                'Light Orange',
+                'Orange',
+                'Brown'
+            ]); // يمكنك إزالة ->nullable() إذا كنت تريد إجبارياً
             $table->timestamps();
         });
     }

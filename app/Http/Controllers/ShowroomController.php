@@ -50,4 +50,9 @@ class ShowroomController extends Controller
         $response = $this->showroomService->editShowroom($id, $request->validated());
         return response()->json($response, $response['status']);
     }
+    public function allShowroom()
+    {
+        $result = $this->showroomService->getAllShowrooms1();
+        return response()->json($result);
+    }
 }

@@ -19,7 +19,8 @@ class car_general_info extends Model
         'fuel_type',
         'body_type',
         'vin',
-        'condition'
+        'condition',
+        'color'
     ];
 
     public function car()

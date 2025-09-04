@@ -14,7 +14,7 @@ class CarRequest extends FormRequest
 
     public function rules(): array
     {
-        // إذا في car بالمسار معناها تحديث
+
         $isUpdate = $this->route('car') !== null;
         $carId = $this->route('car');
 
@@ -40,6 +40,37 @@ class CarRequest extends FormRequest
                 $isUpdate ? 'sometimes' : 'required',
                 Rule::in(['sedan', 'suv', 'hatchback', 'coupe', 'convertible', 'truck']),
             ],
+            // 1. إضافة قاعدة التحقق من حقل اللون
+            'color' => [
+                $isUpdate ? 'sometimes' : 'required',
+                Rule::in([
+                    'White',
+                    'Grey',
+                    'Black',
+                    'Light Red',
+                    'Red',
+                    'Dark Red',
+                    'Light Blue',
+                    'Blue',
+                    'Dark Blue',
+                    'Light Green',
+                    'Green',
+                    'Dark Green',
+                    'Light Pink',
+                    'Pink',
+                    'Dark Pink',
+                    'Light Purple',
+                    'Purple',
+                    'Dark Purple',
+                    'Light Yellow',
+                    'Yellow',
+                    'Dark Yellow',
+                    'Beige',
+                    'Light Orange',
+                    'Orange',
+                    'Brown'
+                ]),
+            ],
             'vin' => [
                 $isUpdate ? 'sometimes' : 'required',
                 'string',
@@ -52,7 +83,11 @@ class CarRequest extends FormRequest
                 Rule::in(['new', 'used']),
             ],
             'price' => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0'],
-            'currency' => ['nullable', 'string', 'max:3'],
+            // 2. تحديث قاعدة التحقق من العملة لتصبح ENUM
+            'currency' => [
+                'sometimes', // أو 'nullable' إذا كان default('SYP') يعمل بشكل كافي
+                Rule::in(['SYP', 'USD']), // تأكد من أن القيم مطابقة للقيم في قاعدة البيانات
+            ],
             'negotiable' => ['sometimes', 'boolean'],
             'discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'discount_amount' => ['nullable', 'numeric', 'min:0'],
@@ -91,10 +126,12 @@ class CarRequest extends FormRequest
             'fuel_type.in' => 'The selected fuel type is invalid.',
             'body_type.required' => 'The body type is required.',
             'body_type.in' => 'The selected body type is invalid.',
+            'color.required' => 'The car color is required.',
+            'color.in' => 'The selected color is invalid.',
             'price.required' => 'The price is required.',
             'price.numeric' => 'The price must be a number.',
             'price.min' => 'The price must be at least 0.',
-            'currency.max' => 'The currency cannot exceed 3 characters.',
+            'currency.in' => 'The currency must be either SYP or USD.',
             'negotiable.boolean' => 'The negotiable value must be true or false.',
             'discount_percentage.numeric' => 'The discount percentage must be a number.',
             'discount_percentage.min' => 'The discount percentage must be at least 0.',

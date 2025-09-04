@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CarController;
 use App\Http\Controllers\CarFavoriteController;
+use App\Http\Controllers\HistoryController;
+use App\Http\Controllers\PersonalCarController;
 use App\Http\Controllers\ShowroomController;
 use App\Http\Controllers\VerificationController;
 
@@ -25,6 +27,9 @@ use App\Http\Controllers\VerificationController;
 Route::post('sign-in', action: [AuthController::class, 'Register']);
 Route::post('login', [AuthController::class, 'login']);
 Route::get('random', [CarController::class, 'getRandomCars']);
+Route::get('/cars', [CarController::class, 'allCars']);
+Route::get('/allShowroom', [ShowroomController::class, 'allShowroom']);
+
 
 
 Route::group(["middleware" => ["auth:sanctum"]], function () {
@@ -41,6 +46,10 @@ Route::group(["middleware" => ["auth:sanctum"]], function () {
     Route::post('/showrooms/{showroom}/favorite', [ShowroomFavoriteController::class, 'add']);
     Route::delete('/showrooms/{showroom}/favorite', [ShowroomFavoriteController::class, 'remove']);
     Route::get('/favorites/showrooms', [ShowroomFavoriteController::class, 'index']);
+
+    //History
+    Route::get('/history', [HistoryController::class, 'index']);
+
 
 
     // Verification
@@ -90,6 +99,13 @@ Route::group(["middleware" => ["auth:sanctum"]], function () {
         Route::get('/{rentalId}', [RentalController::class, 'getRentalDetails']);
     });
 
+    //PersonalCar
+    Route::get('/personal-cars', [PersonalCarController::class, 'index']);
+    Route::get('/personal-cars/{id}', [PersonalCarController::class, 'show']);
+    Route::post('/personal-cars', [PersonalCarController::class, 'store']);
+    Route::put('/personal-cars/{id}', [PersonalCarController::class, 'update']);
+    Route::delete('/personal-cars/{id}', [PersonalCarController::class, 'destroy']);
+
     //Auction
     Route::prefix('auction')->middleware('auth:sanctum')->group(function () {
         Route::post('/create', [AuctionController::class, 'createAuction']);
@@ -102,7 +118,7 @@ Route::group(["middleware" => ["auth:sanctum"]], function () {
 
         Route::get('/{id}/bids', [AuctionController::class, 'getBids']);
         Route::get('/showroom/{id}', [AuctionController::class, 'getShowroomAuctions']);
-        Route::post('/bid', [AuctionController::class, 'placeBid']);
+        Route::post('/bid/{id}', [AuctionController::class, 'placeBid']);
         Route::post('/{id}/close', [AuctionController::class, 'closeAuction']);
     });
 });

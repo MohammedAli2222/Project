@@ -27,7 +27,9 @@ class CarRepository
             'fuel_type' => $data['fuel_type'],
             'body_type' => $data['body_type'],
             'vin' => $data['vin'],
-            'condition' => $data['condition']
+            'condition' => $data['condition'],
+            'color' => $data['color'],
+
         ]);
     }
     public function createFinancialInfo(int $carId, array $data)
@@ -137,6 +139,12 @@ class CarRepository
         return Car::with('showroom')
             ->inRandomOrder()
             ->limit($limit)
+            ->get();
+    }
+    public function getAllCars()
+    {
+        return Car::with(['generalInfo', 'financialInfo', 'technicalSpecs', 'images'])
+            ->orderBy('created_at', 'desc')
             ->get();
     }
 }

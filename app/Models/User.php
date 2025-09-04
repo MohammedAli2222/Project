@@ -52,12 +52,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(Showroom::class);
     }
-    protected static function booted()
-    {
-        static::deleting(function ($user) {
-            if ($user->profile_picture && Storage::exists(str_replace('storage/', '', $user->profile_picture))) {
-                Storage::delete(str_replace('storage/', '', $user->profile_picture));
-            }
-        });
-    }
+    // protected static function booted()
+    // {
+    //     static::deleting(function ($user) {
+    //         if ($user->profile_picture && Storage::exists(str_replace('storage/', '', $user->profile_picture))) {
+    //             Storage::delete(str_replace('storage/', '', $user->profile_picture));
+    //         }
+    //     });
+    // }
 }

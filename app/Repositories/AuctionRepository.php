@@ -37,7 +37,7 @@ class AuctionRepository
 
     public function findById(int $id): ?Auction
     {
-        return Auction::with('car', 'bids', 'winner')->find($id);
+        return Auction::with('car', 'bids')->find($id);
     }
 
     public function getActive(): Collection

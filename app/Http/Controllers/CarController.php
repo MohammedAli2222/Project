@@ -35,6 +35,7 @@ class CarController extends Controller
         ], 201);
     }
 
+
     public function updateCar(int $carID, CarRequest $request): JsonResponse
     {
         $result = $this->carService->updateCar($carID, $request->validated());
@@ -111,5 +112,10 @@ class CarController extends Controller
             'status' => true,
             'data' => CarResource::collection($cars),
         ]);
+    }
+    public function allCars()
+    {
+        $result = $this->carService->getAllCars();
+        return response()->json($result);
     }
 }

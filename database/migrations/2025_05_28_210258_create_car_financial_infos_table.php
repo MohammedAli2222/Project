@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('car_id')->constrained('cars')->onDelete('cascade');
             $table->decimal('price', 12, 2);
-            $table->string('currency', 3)->default('SYP');
+            $table->Enum('currency', ['SYR', 'USD']);
             $table->boolean('negotiable')->default(false);
             $table->decimal('discount_percentage', 5, 2)->nullable();
             $table->decimal('discount_amount', 12, 2)->nullable();
