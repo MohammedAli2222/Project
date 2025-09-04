@@ -145,7 +145,8 @@ class CarService
                 'fuel_type',
                 'body_type',
                 'vin',
-                'condition'
+                'condition',
+                'color'
             ];
 
             $generalInfoData = [];
@@ -297,5 +298,29 @@ class CarService
     public function getRandomCarsForHomepage(int $limit = 10)
     {
         return $this->carRepository->getRandomCarsFromMultipleShowrooms($limit);
+    }
+    public function getAllCars(): array
+    {
+        $cars = $this->carRepository->getAllCars();
+
+        return [
+            'status' => true,
+            'cars' => $cars,
+        ];
+    }
+    public function getCarsByUserId(int $userId)
+    {
+        try {
+            $cars = $this->carRepository->getByUserId($userId);
+            return [
+                'status' => true,
+                'data' => $cars
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => false,
+                'message' => 'حدث خطأ أثناء جلب السيارات: ' . $e->getMessage()
+            ];
+        }
     }
 }

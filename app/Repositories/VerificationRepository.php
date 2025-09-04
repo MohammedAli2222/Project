@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Models\User;
 use App\Models\Verification;
 
 class VerificationRepository
@@ -84,5 +85,12 @@ class VerificationRepository
         $verification->save();
 
         return $verification;
+    }
+
+    public function getUserVerificationStatus($userId): ?bool
+    {
+        $user = User::find($userId);
+
+        return $user ? (bool) $user->is_verif : null;
     }
 }

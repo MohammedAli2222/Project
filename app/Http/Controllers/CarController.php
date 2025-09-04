@@ -118,4 +118,13 @@ class CarController extends Controller
         $result = $this->carService->getAllCars();
         return response()->json($result);
     }
+
+    public function getUserCars()
+    {
+        $userId = auth()->id();
+
+        $result = $this->carService->getCarsByUserId($userId);
+
+        return response()->json($result);
+    }
 }

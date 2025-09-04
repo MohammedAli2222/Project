@@ -81,7 +81,7 @@ class VerificationService
         $created = $this->verificationRepository->createShowroomVerification($request->showroom_id, $documentPath);
 
         if ($created === false) {
-            // حذف الملف إذا لم يتم إنشاء السجل في الداتا بيز
+
             Storage::disk('public')->delete($documentPath);
 
             return response()->json([
@@ -290,5 +290,59 @@ class VerificationService
             'message' => $message,
             'verification_id' => $verification->id
         ];
+    }
+
+    public function getIsVerifiedStatus(int $userId)
+    {
+        $status = $this->verificationRepository->getUserVerificationStatus($userId);
+
+        if ($status === null) {
+            return [
+                'status' => false,
+                'message' => 'User not found.'
+            ];
+        }
+
+        return [
+            'status' => true,
+            'is_verified' => $status
+        ];
+    }
+
+    public function approveUserVerification(int $verificationId): array
+    {
+        $verification = $this->verificationRepository->findVerificationById($verificationId);
+
+        if (!$verification || $verification->type !== 'USER') {
+            return [
+                'status' => false,
+                'message' => 'Verification request not found or not for a user.'
+            ];
+        }
+
+        $this->verificationRepository->changeStatus($verificationId, 'Approved');
+
+        if ($verification->user) {
+            $verification->user->is_verif = true;
+            $verification->user->save();
+        }
+
+        return [
+            'status' => true,
+            'message' => 'User verification approved successfully.',
+            'verification_id' => $verification->id
+        ];
+    }
+
+    public function rejectUserVerification(int $verificationId): array
+    {
+        $verification = $this->verificationRepository->findVerificationById($verificationId);
+        if (!$verification || $verification->type !== 'USER') {
+            return ['status' => false, 'message' => 'Verification request not found or not for a user.'];
+        }
+
+        $this->verificationRepository->changeStatus($verificationId, 'Rejected');
+
+        return ['status' => true, 'message' => 'User verification rejected.', 'verification_id' => $verification->id];
     }
 }

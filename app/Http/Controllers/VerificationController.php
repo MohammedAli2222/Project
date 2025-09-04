@@ -148,4 +148,24 @@ class VerificationController extends Controller
 
         return response()->json($result, $result['status'] ? 200 : 400);
     }
+
+    public function getIsVerifiedStatus($id)
+    {
+        $response = $this->verificationService->getIsVerifiedStatus($id);
+
+        return response()->json($response, $response['status'] ? 200 : 404);
+    }
+
+    public function approveUser(int $verificationId)
+    {
+        $result = $this->verificationService->approveUserVerification($verificationId);
+
+        return response()->json($result, $result['status'] ? 200 : 400);
+    }
+
+    public function rejectUser(int $verificationId)
+    {
+        $result = $this->verificationService->rejectUserVerification($verificationId);
+        return response()->json($result, $result['status'] ? 200 : 400);
+    }
 }

@@ -14,7 +14,6 @@ class CarRepository
     {
         return Car::create($data);
     }
-
     public function createGeneralInfo(int $carId, array $data)
     {
         return car_general_info::create([
@@ -52,33 +51,26 @@ class CarRepository
             'cylinders' => $data['cylinders'],
         ]);
     }
-    ////////////////////////////////
-
     public function updateCarGeneralInfo(int $carId, array $data): bool
     {
         return car_general_info::where('car_id', $carId)->update($data) > 0;
     }
-
     public function updateCarFinancialInfo(int $carId, array $data): bool
     {
         return car_financial_info::where('car_id', $carId)->update($data) > 0;
     }
-
     public function updateCarTechnicalSpec(int $carId, array $data): bool
     {
         return car_technical_spec::where('car_id', $carId)->update($data) > 0;
     }
-
     public function updateCarMainInfo(int $carId, array $data): bool
     {
         return Car::where('id', $carId)->update($data) > 0;
     }
-
     public function deleteCarImages(int $carId): bool
     {
         return car_images::where('car_id', $carId)->delete() > 0;
     }
-
     public function createImage(int $carId, string $imagePath, bool $isMain = false): car_images
     {
         return car_images::create([
@@ -87,16 +79,6 @@ class CarRepository
             'is_main' => $isMain,
         ]);
     }
-
-    ////////////////////////
-    // public function createImage(int $carId, string $imagePath, bool $isMain = false)
-    // {
-    //     return car_images::create([
-    //         'car_id' => $carId,
-    //         'image_path' => $imagePath,
-    //         'is_main' => $isMain,
-    //     ]);
-    // }
     public function delete(int $userID, int $showroom_id, int $car_id): bool
     {
         return Car::where('user_id', $userID)
@@ -121,7 +103,6 @@ class CarRepository
     {
         return Car::with(['generalInfo', 'financialInfo', 'technicalSpecs', 'images'])->find($carID);
     }
-
     public function updateStatus(int $carID, string $status): bool
     {
         $car = Car::find($carID);
@@ -144,6 +125,13 @@ class CarRepository
     public function getAllCars()
     {
         return Car::with(['generalInfo', 'financialInfo', 'technicalSpecs', 'images'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+    public function getByUserId(int $userId)
+    {
+        return Car::with(['generalInfo', 'financialInfo', 'technicalSpecs', 'images'])
+            ->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
     }
