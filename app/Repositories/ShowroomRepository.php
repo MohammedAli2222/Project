@@ -64,9 +64,12 @@ class ShowroomRepository
         $showroom->save();
         return $showroom;
     }
-
     private function storeLogo(UploadedFile $file)
     {
         return $file->store('showroom_logos', 'public');
+    }
+    public function getAllShowroom()
+    {
+        return Showroom::all();
     }
 }

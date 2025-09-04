@@ -99,12 +99,20 @@ class RentalService
 
         $this->rentalRepository->markCarAsRented($carId);
 
+        // ✅ تسجيل العملية في history
+        \App\Models\History::create([
+            'user_id' => $userId,
+            'car_id' => $carId,
+            'action' => 'Rent',
+        ]);
+
         return [
             'status' => 'success',
             'message' => 'Rental created successfully.',
             'rental' => $rental
         ];
     }
+
 
     public function confirmRental($rentalId, $status): array
     {

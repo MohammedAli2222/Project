@@ -106,4 +106,13 @@ class ShowroomService
     {
         return $file->store('showroom_logos', 'public');
     }
+    public function getAllShowrooms1()
+    {
+
+        $showrooms = $this->showroomRepository->getAllShowroom();
+        return [
+            'status' => true,
+            'data' => $showrooms
+        ];
+    }
 }

@@ -3,6 +3,7 @@
 
 namespace App\Services;
 
+use App\Models\History;
 use App\Repositories\AuctionRepository;
 use Carbon\Carbon;
 
@@ -60,6 +61,7 @@ class AuctionService
             return ['status' => 'error', 'message' => 'Your bid is too low.'];
         }
 
+        // إضافة المزايدة
         $bid = $this->repo->addBid($auctionId, $userId, $amount);
         $this->repo->updateCurrentPrice($auctionId, $amount);
 
@@ -69,8 +71,19 @@ class AuctionService
             $this->repo->extendAuction($auctionId, $newEnd->toDateTimeString());
         }
 
-        return ['status' => 'success', 'message' => 'Bid placed successfully.', 'bid' => $bid];
+        History::create([
+            'user_id' => $userId,
+            'car_id' => $auction->car_id,
+            'action' => "Placed a bid of {$amount} on auction #{$auctionId}",
+        ]);
+
+        return [
+            'status' => 'success',
+            'message' => 'Bid placed successfully.',
+            'bid' => $bid
+        ];
     }
+
 
     public function closeAuction(int $auctionId): array
     {
