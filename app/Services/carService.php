@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Http\Resources\CarResource;
+use App\Http\Resources\PersonalCarResource;
 use App\Models\Car;
+use App\Models\PersonalCar;
 use App\Models\Showroom;
 use App\Repositories\CarRepository;
 use Exception;
@@ -301,13 +304,30 @@ class CarService
     }
     public function getAllCars(): array
     {
-        $cars = $this->carRepository->getAllCars();
+        // سيارات المعارض
+        $showroomCars = Car::with(['generalInfo', 'financialInfo', 'technicalSpecs', 'images'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn($car) => new CarResource($car));
+
+        // سيارات المستخدمين العاديين
+        $personalCars = PersonalCar::with(['info', 'images'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn($car) => new PersonalCarResource($car));
+
+        // دمج المجموعتين
+        $allCars = $showroomCars->merge($personalCars)
+            ->values();
 
         return [
             'status' => true,
-            'cars' => $cars,
+            'cars' => $allCars,
         ];
     }
+
+
+
     public function getCarsByUserId(int $userId)
     {
         try {

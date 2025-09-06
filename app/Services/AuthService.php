@@ -153,7 +153,7 @@ class AuthService
                 'phone'           => $user->phone,
                 'user_name'       => $user->user_name,
                 'profile_picture' => $user->profile_picture,
-                'role_id'         => $user->role_id, // ✅ أضفنا الـ role_id
+                'role_id'         => $user->role_id,
             ],
         ];
     }

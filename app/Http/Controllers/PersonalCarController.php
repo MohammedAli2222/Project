@@ -34,7 +34,6 @@ class PersonalCarController extends Controller
         ], 201);
     }
 
-    // هنا يتم استقبال ID السيارة كعدد صحيح، تمامًا مثل CarController
     public function updatePersonalCar(int $carID, PersonalCarRequest $request): JsonResponse
     {
         $result = $this->personalCarService->updateCar($carID, $request->validated());

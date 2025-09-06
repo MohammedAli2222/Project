@@ -12,7 +12,6 @@ class PersonalCarResource extends JsonResource
             ?? $this->images->first();
 
         return [
-            // المعلومات الأساسية من جدول personal_cars
             'id' => $this->id,
             'user_id' => $this->user_id,
             'condition' => $this->condition,
@@ -23,7 +22,6 @@ class PersonalCarResource extends JsonResource
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
 
-            // المعلومات من جدول personal_car_infos
             'name' => $this->info->name ?? null,
             'brand' => $this->info->brand ?? null,
             'model' => $this->info->model ?? null,
@@ -42,7 +40,6 @@ class PersonalCarResource extends JsonResource
             'discount_amount' => $this->info->discount_amount ? (float) $this->info->discount_amount : null,
             'final_price' => $this->calculateFinalPrice(),
 
-            // الصور
             'images' => $this->images->map(function ($image) {
                 return [
                     'id' => $image->id,
@@ -52,7 +49,6 @@ class PersonalCarResource extends JsonResource
                 ];
             }),
 
-            // الصورة الرئيسية
             'main_image' => $mainImage ? [
                 'id' => $mainImage->id,
                 'image_url' => asset($mainImage->image_path),
@@ -62,9 +58,7 @@ class PersonalCarResource extends JsonResource
         ];
     }
 
-    /**
-     * Calculate final price with discount
-     */
+    
     private function calculateFinalPrice(): float
     {
         if (!$this->info) {

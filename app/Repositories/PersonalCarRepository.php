@@ -90,10 +90,7 @@ class PersonalCarRepository
             ->get();
     }
 
-    /**
-     * تحديث بيانات جدول personal_car_infos
-     * إذا ما كان في record → ينشئ واحد جديد
-     */
+
     public function updateCarInfo(int $carId, array $data): bool
     {
         $info = PersonalCarInfo::updateOrCreate(
@@ -104,9 +101,6 @@ class PersonalCarRepository
         return (bool) $info;
     }
 
-    /**
-     * تحديث بيانات جدول personal_cars
-     */
     public function updateCarMain(int $carId, array $data): bool
     {
         $car = PersonalCar::find($carId);

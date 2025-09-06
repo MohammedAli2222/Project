@@ -93,7 +93,6 @@ class PersonalCarService
     {
         $userID = auth()->id();
 
-        // 1. استخدام findCarById بدلاً من findCar
         $car = $this->personalCarRepository->findCarById($carID);
 
         if (!$car) {
@@ -113,7 +112,6 @@ class PersonalCarService
         DB::beginTransaction();
 
         try {
-            // تحديث personal_cars
             $carMainFields = [
                 'vin',
                 'condition',
@@ -133,7 +131,6 @@ class PersonalCarService
                 $this->personalCarRepository->updateCarMain($carID, $carMainData);
             }
 
-            // تحديث personal_car_infos
             $infoFields = [
                 'name',
                 'brand',
@@ -166,7 +163,6 @@ class PersonalCarService
                 $this->personalCarRepository->updateCarInfo($carID, $infoData);
             }
 
-            // معالجة الصور
             if (isset($data['images']) && is_array($data['images']) && !empty($data['images'])) {
                 foreach ($car->images as $image) {
                     $fullPath = public_path($image->image_path);

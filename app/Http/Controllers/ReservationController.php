@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Car;
+use App\Models\PersonalCar;
 use Illuminate\Http\Request;
 use App\Services\ReservationService;
 use Illuminate\Routing\Controller;
@@ -18,20 +20,23 @@ class ReservationController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'car_id' => 'required|integer|exists:cars,id',
-            'showroom_id' => 'required|integer|exists:showrooms,id',
+            'car_id' => 'required|integer',
+            'showroom_id' => 'nullable|integer|exists:showrooms,id',
             'deposit_amount' => 'required|numeric|min:1',
         ]);
 
         $result = $this->reservationService->reserveCar(
             $validated['car_id'],
             $request->user()->id,
-            $validated['showroom_id'],
+            $validated['showroom_id'] ?? null,
             $validated['deposit_amount']
         );
 
         return response()->json($result);
     }
+
+
+
 
     public function confirm($id)
     {

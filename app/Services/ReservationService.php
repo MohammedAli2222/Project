@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\ReservationRepository;
 use App\Models\Car;
+use App\Models\PersonalCar;
 use Exception;
 
 class ReservationService
@@ -14,10 +15,14 @@ class ReservationService
     {
         $this->reservationRepository = $reservationRepository;
     }
-    public function reserveCar(int $carId, int $userId, int $showroomId, float $deposit): array
+    public function reserveCar(int $carId, int $userId, ?int $showroomId, float $deposit): array
     {
         try {
-            $car = Car::find($carId);
+            // تحديد نوع السيارة تلقائي
+            $carType = $showroomId ? Car::class : PersonalCar::class;
+
+            // جلب السيارة حسب النوع
+            $car = $carType::find($carId);
             if (!$car) {
                 return ['status' => false, 'message' => 'Car not found'];
             }
@@ -27,34 +32,27 @@ class ReservationService
                 return ['status' => false, 'message' => 'Car is not available for reservation'];
             }
 
-            // تحقق من حجز مسبق للمستخدم
-            $existing = $this->reservationRepository->findActiveByCarAndUser($carId, $userId);
+            // تحقق من حجز مسبق
+            $existing = $this->reservationRepository->findActiveByCarAndUser($carId, $userId, $carType);
             if ($existing) {
                 return ['status' => false, 'message' => 'You already reserved this car'];
             }
 
-            // تحقق من مبلغ العربون
-            if ($deposit <= 0) {
-                return ['status' => false, 'message' => 'Deposit amount must be greater than 0'];
-            }
-
-            // تحقق إذا كان العربون >= 10% من سعر السيارة
+            // تحقق من مبلغ العربون (>= 10% من السعر)
             if ($deposit < ($car->price * 0.1)) {
                 return ['status' => false, 'message' => 'Deposit must be at least 10% of car price'];
             }
 
-            // مدة الحجز ثابتة (12 ساعة)
-            $duration = 12;
-
             // إنشاء الحجز
             $reservation = $this->reservationRepository->create([
                 'car_id' => $carId,
+                'carable_type' => $carType,
                 'user_id' => $userId,
                 'showroom_id' => $showroomId,
                 'reservation_date' => now(),
                 'deposit_amount' => $deposit,
                 'status' => 'pending',
-                'expires_at' => now()->addHours($duration),
+                'expires_at' => now()->addHours(12),
             ]);
 
             // تحديث حالة السيارة
@@ -65,6 +63,8 @@ class ReservationService
             return ['status' => false, 'message' => $e->getMessage()];
         }
     }
+
+
 
     public function completePurchase(int $reservationId): array
     {

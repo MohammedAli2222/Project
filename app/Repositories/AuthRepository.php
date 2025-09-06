@@ -50,7 +50,7 @@ class AuthRepository
 
     public function getUserWithRole(int $userId)
     {
-        return User::with('role') // لازم يكون عندك علاقة role معرفة في الـ User model
+        return User::with('role') 
             ->find($userId);
     }
 }

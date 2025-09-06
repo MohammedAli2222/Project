@@ -50,7 +50,6 @@ class RentalService
             return ['status' => 'error', 'message' => 'This car is not available for rent.'];
         }
 
-        // التحقق من عدم وجود حجز نشط لنفس المستخدم والسيارة
         $existingRental = Rental::where('user_id', $userId)
             ->where('car_id', $carId)
             ->whereIn('status', ['pending', 'confirmed', 'active'])
@@ -66,8 +65,6 @@ class RentalService
         if ($end->lessThanOrEqualTo($start)) {
             return ['status' => 'error', 'message' => 'Invalid rental duration.'];
         }
-
-        // التحقق من التداخل مع الحجوزات الأخرى
         $suggestions = $this->rentalRepository->checkOverlapAndSuggest(
             $carId,
             $startDate,
@@ -99,7 +96,6 @@ class RentalService
 
         $this->rentalRepository->markCarAsRented($carId);
 
-        // ✅ تسجيل العملية في history
         \App\Models\History::create([
             'user_id' => $userId,
             'car_id' => $carId,

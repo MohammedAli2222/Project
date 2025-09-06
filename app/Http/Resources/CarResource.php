@@ -26,6 +26,8 @@ class CarResource extends JsonResource
                 'fuel_type' => $this->generalInfo->fuel_type ?? null,
                 'body_type' => $this->generalInfo->body_type ?? null,
                 'color' => $this->generalInfo->color ?? null,
+                'condition' => $this->generalInfo->condition,
+                'vin' => $this->generalInfo->vin,
             ],
             'financial_info' => [
                 'price' => $this->financialInfo->price ?? null,
