@@ -59,4 +59,14 @@ class AuthController extends Controller
 
         return response()->json($response, $response['status'] ? 200 : 401);
     }
+
+    public function getUserWithRole(int $id)
+    {
+        $response = $this-> authService->getUserWithRole($id);
+
+        return response()->json(
+            $response,
+            $response['status'] ? 200 : 404
+        );
+    }
 }

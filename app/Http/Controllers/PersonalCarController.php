@@ -2,134 +2,130 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\CarResource;
+use App\Http\Requests\PersonalCarRequest;
+use App\Http\Resources\PersonalCarResource;
 use App\Services\PersonalCarService;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use Illuminate\Validation\Rule;
 
 class PersonalCarController extends Controller
 {
-    public function __construct(
-        private PersonalCarService $service
-    ) {}
+    protected PersonalCarService $personalCarService;
 
-    public function index(Request $request)
+    public function __construct(PersonalCarService $personalCarService)
     {
-        $cars = $this->service->list([
-            'user_id'   => $request->query('user_id'),
-            'status'    => $request->query('status'),
-            'brand'     => $request->query('brand'),
-            'min_price' => $request->query('min_price'),
-            'max_price' => $request->query('max_price'),
-        ]);
+        $this->personalCarService = $personalCarService;
+    }
+
+    public function addPersonalCar(PersonalCarRequest $personalCarRequest): JsonResponse
+    {
+        $validated = $personalCarRequest->validated();
+
+        $result = $this->personalCarService->store($validated);
+
+        if (!$result['status']) {
+            return response()->json(['message' => $result['message']], 400);
+        }
 
         return response()->json([
             'status' => true,
-            'cars' => CarResource::collection($cars),
+            'message' => $result['message'],
+            'car' => new PersonalCarResource($result['car']),
+        ], 201);
+    }
+
+    // هنا يتم استقبال ID السيارة كعدد صحيح، تمامًا مثل CarController
+    public function updatePersonalCar(int $carID, PersonalCarRequest $request): JsonResponse
+    {
+        $result = $this->personalCarService->updateCar($carID, $request->validated());
+
+        if ($result['status']) {
+            return response()->json([
+                'status' => true,
+                'message' => $result['message'],
+                'car' => new PersonalCarResource($result['car'])
+            ], 200);
+        }
+
+        return response()->json([
+            'status' => false,
+            'message' => $result['message']
+        ], 400);
+    }
+
+    public function deletePersonalCar(int $car_id): JsonResponse
+    {
+        $deleted = $this->personalCarService->deleteCar($car_id);
+
+        if (!$deleted['status']) {
+            return response()->json(['message' => $deleted['message']], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => $deleted['message'],
         ]);
     }
 
-
-    public function show(int $id)
+    public function getPersonalCar(int $car_id): JsonResponse
     {
-        $car = app(\App\Repositories\PersonalCarRepository::class)->getById($id);
-        abort_unless($car, 404, 'Personal car not found');
-        return response()->json($car);
+        $car = $this->personalCarService->getCarById($car_id);
+
+        if (!$car['status']) {
+            return response()->json(['message' => 'Personal car not found'], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'car' => new PersonalCarResource($car['car']),
+        ]);
     }
 
-    public function store(Request $request)
+    public function listPersonalCars(): JsonResponse
     {
-        $validated = $this->validatePayload($request, true);
-        $userId = $request->user()->id ?? $validated['user_id']; // مرونة لو تستعمل Sanctum/JWT
+        $cars = $this->personalCarService->listCars();
 
-        $car = $this->service->create($validated, (int)$userId);
-        return response()->json($car, 201);
+        return response()->json([
+            'status' => true,
+            'cars' => PersonalCarResource::collection($cars['cars']),
+        ]);
     }
 
-    public function update(Request $request, int $id)
+    public function changePersonalCarStatus(int $carID, string $status): JsonResponse
     {
-        $validated = $this->validatePayload($request, false);
-        $userId = $request->user()->id ?? $validated['user_id'] ?? null;
-        abort_unless($userId, 422, 'user_id required');
+        $result = $this->personalCarService->changeStatus($carID, $status);
 
-        $car = $this->service->update($id, $validated, (int)$userId);
-        return response()->json($car);
+        if (!$result['status']) {
+            return response()->json(['message' => $result['message']], 400);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => $result['message'],
+        ]);
     }
 
-    public function destroy(Request $request, int $id)
+    public function getRandomPersonalCars()
     {
-        $userId = $request->user()->id ?? (int)$request->input('user_id');
-        abort_unless($userId, 422, 'user_id required');
+        $cars = $this->personalCarService->getRandomCarsForHomepage();
 
-        $this->service->delete($id, $userId);
-        return response()->json(['message' => 'Deleted']);
+        return response()->json([
+            'status' => true,
+            'data' => PersonalCarResource::collection($cars),
+        ]);
     }
 
-    private function validatePayload(Request $request, bool $isCreate): array
+    public function allPersonalCars()
     {
-        $base = [
-            'user_id'   => ['sometimes', 'integer', 'exists:users,id'],
+        $result = $this->personalCarService->getAllCars();
+        return response()->json($result);
+    }
 
-            'condition' => ['required_if:isCreate,true', Rule::in(['new', 'used'])],
-            'vin'       => [$isCreate ? 'required' : 'sometimes', 'string', 'size:17', $isCreate ? 'unique:personal_cars,vin' : ''],
-            'available_status' => ['sometimes', Rule::in(['available', 'reserved', 'sold', 'rented'])],
-            'is_rentable' => ['sometimes', 'boolean'],
-            'rental_cost_per_hour' => ['nullable', 'numeric', 'min:0'],
+    public function getUserPersonalCars()
+    {
+        $userId = auth()->id();
+        $result = $this->personalCarService->getCarsByUserId($userId);
 
-            'name'      => [$isCreate ? 'required' : 'sometimes', 'string'],
-            'brand'     => [$isCreate ? 'required' : 'sometimes', 'string'],
-            'model'     => [$isCreate ? 'required' : 'sometimes', 'string'],
-            'gear_box'  => [$isCreate ? 'required' : 'sometimes', Rule::in(['manual', 'automatic', 'cvt'])],
-            'year'      => [$isCreate ? 'required' : 'sometimes', 'digits:4'],
-            'fuel_type' => [$isCreate ? 'required' : 'sometimes', Rule::in(['petrol', 'diesel', 'hybrid', 'electric'])],
-            'body_type' => [$isCreate ? 'required' : 'sometimes', Rule::in(['sedan', 'suv', 'hatchback', 'coupe', 'convertible', 'truck'])],
-            'color'     => [$isCreate ? 'required' : 'sometimes', Rule::in([
-                'White',
-                'Grey',
-                'Black',
-                'Light Red',
-                'Red',
-                'Dark Red',
-                'Light Blue',
-                'Blue',
-                'Dark Blue',
-                'Light Green',
-                'Green',
-                'Dark Green',
-                'Light Pink',
-                'Pink',
-                'Dark Pink',
-                'Light Purple',
-                'Purple',
-                'Dark Purple',
-                'Light Yellow',
-                'Yellow',
-                'Dark Yellow',
-                'Beige',
-                'Light Orange',
-                'Orange',
-                'Brown'
-            ])],
-
-            'engine_type' => [$isCreate ? 'required' : 'sometimes', 'string'],
-            'cylinders'   => [$isCreate ? 'required' : 'sometimes', 'integer', 'min:1'],
-            'horse_power' => [$isCreate ? 'required' : 'sometimes', 'integer', 'min:1'],
-
-            'price'       => [$isCreate ? 'required' : 'sometimes', 'numeric', 'min:0'],
-            'currency'    => [$isCreate ? 'required' : 'sometimes', Rule::in(['SYR', 'USD'])],
-            'negotiable'  => ['sometimes', 'boolean'],
-            'discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'discount_amount'     => ['nullable', 'numeric', 'min:0'],
-
-            'images' => ['sometimes', 'array'],
-            'images.*' => ['file', 'image', 'max:5120'], // 5MB
-            'main_image_index' => ['nullable', 'integer', 'min:0'],
-        ];
-
-        // hack صغير لأن required_if لا يعرف $isCreate خارج rules
-        if ($isCreate) $request->merge(['isCreate' => true]);
-
-        return $request->validate($base);
+        return response()->json($result);
     }
 }

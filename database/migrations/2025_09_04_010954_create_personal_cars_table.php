@@ -11,7 +11,7 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->enum('condition', ['new', 'used']);
-            $table->string('vin', 17)->unique();
+            $table->string('vin', 11)->unique();
             $table->enum('available_status', ['available', 'reserved', 'sold', 'rented'])->default('available');
             $table->boolean('is_rentable')->default(false);
             $table->decimal('rental_cost_per_hour', 8, 2)->nullable();

@@ -26,10 +26,11 @@ use App\Http\Controllers\VerificationController;
 
 Route::post('sign-in', action: [AuthController::class, 'Register']);
 Route::post('login', [AuthController::class, 'login']);
-Route::get('random', [CarController::class, 'getRandomCars']);
+Route::get('/random', [CarController::class, 'getRandomCars']);
 Route::get('/cars', [CarController::class, 'allCars']);
 Route::get('/allShowroom', [ShowroomController::class, 'allShowroom']);
 Route::get('/user/{id}', [VerificationController::class, 'getIsVerifiedStatus']);
+Route::get('/userRole/{id}', [AuthController::class, 'getUserWithRole']);
 
 
 
@@ -104,11 +105,13 @@ Route::group(["middleware" => ["auth:sanctum"]], function () {
     });
 
     //PersonalCar
-    Route::get('/personal-cars', [PersonalCarController::class, 'index']);
-    Route::get('/personal-cars/{id}', [PersonalCarController::class, 'show']);
-    Route::post('/personal-cars', [PersonalCarController::class, 'store']);
-    Route::put('/personal-cars/{id}', [PersonalCarController::class, 'update']);
-    Route::delete('/personal-cars/{id}', [PersonalCarController::class, 'destroy']);
+    Route::prefix('personal-cars')->group(function () {
+        Route::get('/', [PersonalCarController::class, 'listPersonalCars']);
+        Route::get('/{id}', [PersonalCarController::class, 'getPersonalCar']);
+        Route::post('/add', [PersonalCarController::class, 'addPersonalCar']);
+        Route::post('/{id}/update', [PersonalCarController::class, 'updatePersonalCar']);
+        Route::delete('/{id}/delete', [PersonalCarController::class, 'deletePersonalCar']);
+    });
 
     //Auction
     Route::prefix('auction')->middleware('auth:sanctum')->group(function () {

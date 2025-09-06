@@ -117,7 +117,7 @@ class CarRepository
     }
     public function getRandomCarsFromMultipleShowrooms(int $limit = 10)
     {
-        return Car::with('showroom')
+        return Car::with('showroom')->where('available_status', 'available')
             ->inRandomOrder()
             ->limit($limit)
             ->get();

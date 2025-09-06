@@ -131,4 +131,30 @@ class AuthService
             'user' => new UserResource($updatedUser)
         ];
     }
+
+    public function getUserWithRole(int $userId): array
+    {
+        $user = $this->AuthRepo->getUserWithRole($userId);
+
+        if (!$user) {
+            return [
+                'status'  => false,
+                'message' => 'User not found.',
+            ];
+        }
+
+        return [
+            'status' => true,
+            'data'   => [
+                'id'              => $user->id,
+                'first_name'      => $user->first_name,
+                'last_name'       => $user->last_name,
+                'email'           => $user->email,
+                'phone'           => $user->phone,
+                'user_name'       => $user->user_name,
+                'profile_picture' => $user->profile_picture,
+                'role_id'         => $user->role_id, // ✅ أضفنا الـ role_id
+            ],
+        ];
+    }
 }

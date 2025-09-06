@@ -5,98 +5,121 @@ namespace App\Repositories;
 use App\Models\PersonalCar;
 use App\Models\PersonalCarInfo;
 use App\Models\PersonalCarImage;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class PersonalCarRepository
 {
-    public function createCar(array $carData): PersonalCar
+    public function create(array $data): PersonalCar
     {
-        return PersonalCar::create($carData);
+        return PersonalCar::create($data);
     }
 
-    public function createInfo(int $personalCarId, array $infoData): PersonalCarInfo
+    public function createInfo(int $carId, array $data): PersonalCarInfo
     {
-        $infoData['personal_car_id'] = $personalCarId;
-        return PersonalCarInfo::create($infoData);
+        return PersonalCarInfo::create(array_merge($data, ['personal_car_id' => $carId]));
+    }
+
+    public function createImage(int $carId, string $imagePath, bool $isMain = false): PersonalCarImage
+    {
+        return PersonalCarImage::create([
+            'personal_car_id' => $carId,
+            'image_path' => $imagePath,
+            'is_main' => $isMain,
+        ]);
+    }
+
+    public function delete(int $userID, int $car_id): bool
+    {
+        return PersonalCar::where('user_id', $userID)
+            ->where('id', $car_id)
+            ->delete() > 0;
+    }
+
+    public function findCar(int $car_id)
+    {
+        return PersonalCar::where('id', $car_id)
+            ->with(['info', 'images'])
+            ->first();
+    }
+
+    public function findCarById(int $carID)
+    {
+        return PersonalCar::with(['info', 'images'])->find($carID);
+    }
+
+    public function listCarsByUser(int $user_id)
+    {
+        return PersonalCar::where('user_id', $user_id)
+            ->with(['info', 'images'])
+            ->get();
+    }
+
+    public function updateStatus(int $carID, string $status): bool
+    {
+        $car = PersonalCar::find($carID);
+
+        if (!$car) {
+            return false;
+        }
+
+        $car->available_status = $status;
+        return $car->save();
+    }
+
+    public function getRandomCars(int $limit = 10)
+    {
+        return PersonalCar::where('available_status', 'available')
+            ->inRandomOrder()
+            ->limit($limit)
+            ->with(['info', 'images'])
+            ->get();
+    }
+
+    public function getAllCars()
+    {
+        return PersonalCar::with(['info', 'images'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    public function getByUserId(int $userId)
+    {
+        return PersonalCar::with(['info', 'images'])
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
-     * @param int   $personalCarId
-     * @param array $pathsAndMain  مثال: [['path' => 'storage/...jpg', 'is_main' => true], ...]
-     * @return PersonalCarImage[]
+     * تحديث بيانات جدول personal_car_infos
+     * إذا ما كان في record → ينشئ واحد جديد
      */
-    public function addImages(int $personalCarId, array $pathsAndMain): array
+    public function updateCarInfo(int $carId, array $data): bool
     {
-        // اجعل صورة رئيسية واحدة فقط
-        $hasMain = false;
-        foreach ($pathsAndMain as &$row) {
-            $row['is_main'] = !$hasMain && !empty($row['is_main']);
-            if ($row['is_main']) $hasMain = true;
-        }
-        unset($row);
+        $info = PersonalCarInfo::updateOrCreate(
+            ['personal_car_id' => $carId],
+            $data
+        );
 
-        $created = [];
-        foreach ($pathsAndMain as $img) {
-            $created[] = PersonalCarImage::create([
-                'personal_car_id' => $personalCarId,
-                'image_path'      => $img['path'],
-                'is_main'         => (bool)$img['is_main'],
-            ]);
-        }
-        return $created;
+        return (bool) $info;
     }
 
-    public function getById(int $id): ?PersonalCar
+    /**
+     * تحديث بيانات جدول personal_cars
+     */
+    public function updateCarMain(int $carId, array $data): bool
     {
-        return PersonalCar::with(['info', 'images', 'mainImage'])->find($id);
-    }
+        $car = PersonalCar::find($carId);
 
-    public function paginate(array $filters = [], int $perPage = 15): LengthAwarePaginator
-    {
-        $q = PersonalCar::with(['info', 'mainImage']);
-
-        if (!empty($filters['user_id'])) {
-            $q->where('user_id', $filters['user_id']);
-        }
-        if (!empty($filters['status'])) {
-            $q->where('available_status', $filters['status']);
-        }
-        if (!empty($filters['brand'])) {
-            $q->whereHas('info', fn($qq) => $qq->where('brand', $filters['brand']));
-        }
-        if (!empty($filters['min_price']) || !empty($filters['max_price'])) {
-            $q->whereHas('info', function ($qq) use ($filters) {
-                if (!empty($filters['min_price'])) $qq->where('price', '>=', $filters['min_price']);
-                if (!empty($filters['max_price'])) $qq->where('price', '<=', $filters['max_price']);
-            });
+        if ($car) {
+            return $car->update($data);
         }
 
-        return $q->latest()->paginate($perPage);
+        return false;
     }
 
-    public function updateCar(PersonalCar $car, array $carData): PersonalCar
+    public function deleteCarImages(int $carId): bool
     {
-        $car->update($carData);
-        return $car->fresh(['info', 'images', 'mainImage']);
-    }
-
-    public function updateInfo(PersonalCar $car, array $infoData): PersonalCarInfo
-    {
-        if ($car->info) {
-            $car->info->update($infoData);
-            return $car->info->fresh();
-        }
-        return $this->createInfo($car->id, $infoData);
-    }
-
-    public function replaceImages(PersonalCar $car, array $pathsAndMain): array
-    {
-        $car->images()->delete();
-        return $this->addImages($car->id, $pathsAndMain);
-    }
-
-    public function delete(PersonalCar $car): void
-    {
-        $car->delete(); // cascade على info, images
+        return PersonalCarImage::where('personal_car_id', $carId)->delete() > 0;
     }
 }

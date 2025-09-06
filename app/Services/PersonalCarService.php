@@ -4,145 +4,329 @@ namespace App\Services;
 
 use App\Models\PersonalCar;
 use App\Repositories\PersonalCarRepository;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+use Exception;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+
+
 
 class PersonalCarService
 {
-    public function __construct(
-        private PersonalCarRepository $repo
-    ) {}
+    protected PersonalCarRepository $personalCarRepository;
 
-    public function create(array $data, int $userId): PersonalCar
+    public function __construct(PersonalCarRepository $personalCarRepository)
     {
-        return DB::transaction(function() use ($data, $userId) {
+        $this->personalCarRepository = $personalCarRepository;
+    }
 
-            // 1) personal_cars
-            $car = $this->repo->createCar([
-                'user_id'             => $userId,
-                'condition'           => $data['condition'],
-                'vin'                 => $data['vin'],
-                'available_status'    => $data['available_status'] ?? 'available',
-                'is_rentable'         => (bool)($data['is_rentable'] ?? false),
-                'rental_cost_per_hour'=> $data['rental_cost_per_hour'] ?? null,
+    public function store(array $data): array
+    {
+        $userID = auth()->id();
+
+        DB::beginTransaction();
+
+        try {
+            // إنشاء السيارة الشخصية
+            $car = $this->personalCarRepository->create([
+                'user_id' => $userID,
+                'vin' => $data['vin'],
+                'condition' => $data['condition'],
+                'available_status' => $data['available_status'] ?? 'available',
+                'is_rentable' => (bool)($data['is_rentable'] ?? false),
+                'rental_cost_per_hour' => $data['rental_cost_per_hour'] ?? null,
             ]);
 
-            // 2) personal_car_infos
-            $this->repo->createInfo($car->id, [
-                'name'        => $data['name'],
-                'brand'       => $data['brand'],
-                'model'       => $data['model'],
-                'gear_box'    => $data['gear_box'],
-                'year'        => $data['year'],
-                'fuel_type'   => $data['fuel_type'],
-                'body_type'   => $data['body_type'],
-                'color'       => $data['color'],
+            // إنشاء المعلومات في جدول info
+            $this->personalCarRepository->createInfo($car->id, [
+                'name' => $data['name'],
+                'brand' => $data['brand'],
+                'model' => $data['model'],
+                'gear_box' => $data['gear_box'],
+                'year' => $data['year'],
+                'fuel_type' => $data['fuel_type'],
+                'body_type' => $data['body_type'],
+                'color' => $data['color'],
                 'engine_type' => $data['engine_type'],
-                'cylinders'   => $data['cylinders'],
+                'cylinders' => $data['cylinders'],
                 'horse_power' => $data['horse_power'],
-                'price'       => $data['price'],
-                'currency'    => $data['currency'],
-                'negotiable'  => (bool)($data['negotiable'] ?? false),
+                'mileage' => $data['mileage'] ?? null,
+                'description' => $data['description'] ?? null,
+                'price' => $data['price'],
+                'currency' => $data['currency'],
+                'negotiable' => (bool)($data['negotiable'] ?? false),
                 'discount_percentage' => $data['discount_percentage'] ?? null,
-                'discount_amount'     => $data['discount_amount'] ?? null,
+                'discount_amount' => $data['discount_amount'] ?? null,
             ]);
 
-            // 3) images (اختياري)
-            $pathsAndMain = $this->storeImages($data['images'] ?? [], $data['main_image_index'] ?? null);
-            if (!empty($pathsAndMain)) {
-                $this->repo->addImages($car->id, $pathsAndMain);
-            }
+            // معالجة الصور
+            if (isset($data['images']) && is_array($data['images'])) {
+                foreach ($data['images'] as $index => $image) {
+                    if ($image instanceof UploadedFile) {
+                        $path = $image->store('personal_cars', 'public');
+                        $path = 'storage/' . $path;
 
-            return $this->repo->getById($car->id);
-        });
-    }
-
-    public function update(int $id, array $data, int $userId): PersonalCar
-    {
-        return DB::transaction(function() use ($id, $data, $userId) {
-            $car = $this->repo->getById($id);
-            abort_unless($car, 404, 'Personal car not found');
-            abort_unless($car->user_id === $userId, 403, 'Unauthorized');
-
-            // car
-            $this->repo->updateCar($car, array_filter([
-                'condition'           => $data['condition'] ?? null,
-                'available_status'    => $data['available_status'] ?? null,
-                'is_rentable'         => array_key_exists('is_rentable', $data) ? (bool)$data['is_rentable'] : null,
-                'rental_cost_per_hour'=> $data['rental_cost_per_hour'] ?? null,
-            ], fn($v) => !is_null($v)));
-
-            // info
-            $this->repo->updateInfo($car, array_filter([
-                'name'        => $data['name'] ?? null,
-                'brand'       => $data['brand'] ?? null,
-                'model'       => $data['model'] ?? null,
-                'gear_box'    => $data['gear_box'] ?? null,
-                'year'        => $data['year'] ?? null,
-                'fuel_type'   => $data['fuel_type'] ?? null,
-                'body_type'   => $data['body_type'] ?? null,
-                'color'       => $data['color'] ?? null,
-                'engine_type' => $data['engine_type'] ?? null,
-                'cylinders'   => $data['cylinders'] ?? null,
-                'horse_power' => $data['horse_power'] ?? null,
-                'price'       => $data['price'] ?? null,
-                'currency'    => $data['currency'] ?? null,
-                'negotiable'  => array_key_exists('negotiable', $data) ? (bool)$data['negotiable'] : null,
-                'discount_percentage' => $data['discount_percentage'] ?? null,
-                'discount_amount'     => $data['discount_amount'] ?? null,
-            ], fn($v) => !is_null($v)));
-
-            // images (اختياري: استبدال كامل)
-            if (!empty($data['images'])) {
-                $pathsAndMain = $this->storeImages($data['images'], $data['main_image_index'] ?? null);
-                $this->repo->replaceImages($car, $pathsAndMain);
-            }
-
-            return $this->repo->getById($car->id);
-        });
-    }
-
-    public function list(array $filters = [], int $perPage = 15) {
-        return $this->repo->paginate($filters, $perPage);
-    }
-
-    public function delete(int $id, int $userId): void {
-        DB::transaction(function() use ($id, $userId) {
-            $car = $this->repo->getById($id);
-            abort_unless($car, 404, 'Personal car not found');
-            abort_unless($car->user_id === $userId, 403, 'Unauthorized');
-
-            // حذف ملفات الصور من التخزين أيضًا (اختياري)
-            foreach ($car->images as $img) {
-                if (Storage::disk('public')->exists($img->image_path)) {
-                    Storage::disk('public')->delete($img->image_path);
+                        $isMain = (isset($data['main_image_index']) && $data['main_image_index'] == $index);
+                        $this->personalCarRepository->createImage($car->id, $path, $isMain);
+                    }
                 }
             }
 
-            $this->repo->delete($car);
-        });
-    }
+            DB::commit();
 
-    /**
-     * @param UploadedFile[]|array $images
-     * @param int|null $mainIndex   فهرس الصورة الرئيسية (0-based)
-     * @return array [['path' => 'personal_cars/xxx.jpg','is_main' => bool], ...]
-     */
-    private function storeImages(array $images, ?int $mainIndex): array {
-        $result = [];
-        foreach ($images as $i => $file) {
-            if ($file instanceof UploadedFile) {
-                $path = $file->store('personal_cars', 'public');
-            } else {
-                // لو مررت مسار جاهز كسلسلة
-                $path = (string)$file;
-            }
-            $result[] = [
-                'path'    => $path,
-                'is_main' => $mainIndex !== null && $i === (int)$mainIndex,
+            $car->load(['info', 'images']);
+
+            return [
+                'status' => true,
+                'message' => 'Personal car added successfully',
+                'car' => $car,
+            ];
+        } catch (Exception $e) {
+            DB::rollBack();
+            return [
+                'status' => false,
+                'message' => 'Failed to add personal car: ' . $e->getMessage(),
             ];
         }
-        return $result;
+    }
+
+    public function updateCar(int $carID, array $data): array
+    {
+        $userID = auth()->id();
+
+        // 1. استخدام findCarById بدلاً من findCar
+        $car = $this->personalCarRepository->findCarById($carID);
+
+        if (!$car) {
+            return [
+                'status' => false,
+                'message' => 'Personal car not found.'
+            ];
+        }
+
+        if ($car->user_id !== $userID) {
+            return [
+                'status' => false,
+                'message' => 'Unauthorized.'
+            ];
+        }
+
+        DB::beginTransaction();
+
+        try {
+            // تحديث personal_cars
+            $carMainFields = [
+                'vin',
+                'condition',
+                'available_status',
+                'is_rentable',
+                'rental_cost_per_hour'
+            ];
+
+            $carMainData = [];
+            foreach ($carMainFields as $field) {
+                if (isset($data[$field]) || array_key_exists($field, $data)) {
+                    $carMainData[$field] = $data[$field];
+                }
+            }
+
+            if (!empty($carMainData)) {
+                $this->personalCarRepository->updateCarMain($carID, $carMainData);
+            }
+
+            // تحديث personal_car_infos
+            $infoFields = [
+                'name',
+                'brand',
+                'model',
+                'gear_box',
+                'year',
+                'fuel_type',
+                'body_type',
+                'color',
+                'engine_type',
+                'cylinders',
+                'horse_power',
+                'mileage',
+                'description',
+                'price',
+                'currency',
+                'negotiable',
+                'discount_percentage',
+                'discount_amount'
+            ];
+
+            $infoData = [];
+            foreach ($infoFields as $field) {
+                if (isset($data[$field]) || array_key_exists($field, $data)) {
+                    $infoData[$field] = $data[$field];
+                }
+            }
+
+            if (!empty($infoData)) {
+                $this->personalCarRepository->updateCarInfo($carID, $infoData);
+            }
+
+            // معالجة الصور
+            if (isset($data['images']) && is_array($data['images']) && !empty($data['images'])) {
+                foreach ($car->images as $image) {
+                    $fullPath = public_path($image->image_path);
+                    if (file_exists($fullPath)) {
+                        @unlink($fullPath);
+                    }
+                }
+                $this->personalCarRepository->deleteCarImages($carID);
+
+                $mainImageIndex = $data['main_image_index'] ?? 0;
+                foreach ($data['images'] as $index => $image) {
+                    if ($image instanceof UploadedFile) {
+                        $path = $image->store('personal_cars', 'public');
+                        $relativePath = 'storage/' . $path;
+
+                        $isMain = ($mainImageIndex == $index);
+                        $this->personalCarRepository->createImage($carID, $relativePath, $isMain);
+                    }
+                }
+            }
+
+            DB::commit();
+
+            $car->refresh()->load(['info', 'images']);
+
+            return [
+                'status' => true,
+                'message' => 'Personal car updated successfully.',
+                'car' => $car,
+            ];
+        } catch (Exception $e) {
+            DB::rollBack();
+            return [
+                'status' => false,
+                'message' => 'Failed to update personal car: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+
+
+    public function deleteCar(int $car_id): array
+    {
+        $userID = auth()->id();
+
+        $deleted = $this->personalCarRepository->delete($userID, $car_id);
+
+        if ($deleted) {
+            return [
+                'status' => true,
+                'message' => 'Personal car deleted successfully',
+            ];
+        }
+
+        return [
+            'status' => false,
+            'message' => 'Personal car not found or you do not have permission',
+        ];
+    }
+
+    public function getCarById(int $car_id): array
+    {
+        $car = $this->personalCarRepository->findCar($car_id);
+
+        if (!$car) {
+            return [
+                'status' => false,
+                'message' => 'Personal car not found'
+            ];
+        }
+
+        return [
+            'status' => true,
+            'car' => $car
+        ];
+    }
+
+    public function listCars(): array
+    {
+        $userID = auth()->id();
+        $cars = $this->personalCarRepository->listCarsByUser($userID);
+
+        return [
+            'status' => true,
+            'cars' => $cars
+        ];
+    }
+
+    public function changeStatus(int $carID, string $status): array
+    {
+        $car = $this->personalCarRepository->findCarById($carID);
+
+        if (!$car) {
+            return [
+                'status' => false,
+                'message' => 'Personal car not found.'
+            ];
+        }
+
+        $userID = auth()->id();
+
+        if ($car->user_id !== $userID) {
+            return [
+                'status' => false,
+                'message' => 'Unauthorized.'
+            ];
+        }
+
+        $allowedStatuses = ['available', 'sold', 'reserved', 'rented'];
+
+        if (!in_array($status, $allowedStatuses)) {
+            return [
+                'status' => false,
+                'message' => 'Invalid status.'
+            ];
+        }
+
+        $updated = $this->personalCarRepository->updateStatus($carID, $status);
+
+        if ($updated) {
+            return [
+                'status' => true,
+                'message' => 'Status updated successfully.'
+            ];
+        }
+
+        return [
+            'status' => false,
+            'message' => 'Failed to update status.'
+        ];
+    }
+
+    public function getRandomCarsForHomepage(int $limit = 10)
+    {
+        return $this->personalCarRepository->getRandomCars($limit);
+    }
+
+    public function getAllCars(): array
+    {
+        $cars = $this->personalCarRepository->getAllCars();
+
+        return [
+            'status' => true,
+            'cars' => $cars,
+        ];
+    }
+
+    public function getCarsByUserId(int $userId)
+    {
+        try {
+            $cars = $this->personalCarRepository->getByUserId($userId);
+            return [
+                'status' => true,
+                'data' => $cars
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => false,
+                'message' => 'Failed to fetch personal cars: ' . $e->getMessage()
+            ];
+        }
     }
 }
