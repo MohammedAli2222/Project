@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class reservation extends Model
+class Reservation extends Model
 {
     use HasFactory;
 
@@ -15,12 +15,7 @@ class reservation extends Model
         'showroom_id',
         'reservation_date',
         'deposit_amount',
-        'status'
-    ];
-
-    protected $casts = [
-        'reservation_date' => 'datetime',
-        'deposit_amount' => 'decimal:2'
+        'status',
     ];
 
     public function user()

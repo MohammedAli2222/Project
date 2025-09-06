@@ -9,6 +9,7 @@ use App\Http\Controllers\CarController;
 use App\Http\Controllers\CarFavoriteController;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\PersonalCarController;
+use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\ShowroomController;
 use App\Http\Controllers\VerificationController;
 
@@ -127,5 +128,14 @@ Route::group(["middleware" => ["auth:sanctum"]], function () {
         Route::get('/showroom/{id}', [AuctionController::class, 'getShowroomAuctions']);
         Route::post('/bid/{id}', [AuctionController::class, 'placeBid']);
         Route::post('/{id}/close', [AuctionController::class, 'closeAuction']);
+    });
+
+    //Reservation
+    Route::middleware('auth:sanctum')->prefix('reservations')->group(function () {
+        Route::post('/', [ReservationController::class, 'store']);
+        Route::patch('/{id}/confirm', [ReservationController::class, 'confirm']);
+        Route::patch('/{id}/cancel', [ReservationController::class, 'cancel']);
+        Route::patch('/{id}/complete', [ReservationController::class, 'complete']);
+        Route::get('/', [ReservationController::class, 'index']); 
     });
 });
